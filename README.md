@@ -1,4 +1,4 @@
-# Meu Projeto Saúde
+# Heart Health
 
 Projeto full-stack para diagnóstico e acompanhamento de saúde, com backend em Python/FastAPI e frontend em Flutter.
 
