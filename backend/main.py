@@ -6,7 +6,7 @@ import joblib
 import pandas as pd
 from pydantic import BaseModel
 
-app = FastAPI(title='Meu Projeto Saúde', version='1.0.0')
+app = FastAPI(title='Heart Helth', version='1.0.0')
 
 app.add_middleware(
     CORSMiddleware,

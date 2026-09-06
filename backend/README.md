@@ -1,4 +1,4 @@
-# Backend - Meu Projeto Saúde
+# Backend - Heart Helth
 
 Este diretório contém a API do projeto em FastAPI.
 
