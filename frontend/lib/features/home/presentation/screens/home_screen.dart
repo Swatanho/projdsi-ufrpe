@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:percent_indicator/circular_percent_indicator.dart';
-import 'package:dropdown_search/dropdown_search.dart';
 
-import '../../../../core/services/health_service.dart';
+import 'prediction_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,541 +10,430 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final HealthService _healthService = HealthService();
+  final TextEditingController _searchController = TextEditingController();
+  int _selectedTab = 0;
 
-  final _formKey = GlobalKey<FormState>();
-  
-  // Controllers
-  String _selectedPatient = 'Carlos Silva';
-  int _age = 62;
-  double _bmi = 31.5;
-  bool _highBP = true;
-  bool _highChol = true;
-  bool _smoker = false;
-  bool _physActivity = false;
-  bool _stroke = true;
-  
+  final List<_Patient> _patients = const [
+    _Patient(
+      name: 'Ana Silva',
+      age: 42,
+      gender: 'Feminino',
+      registeredAt: '12/03/2024',
+      risk: _RiskLevel.high,
+    ),
+    _Patient(
+      name: 'Carlos Mendes',
+      age: 58,
+      gender: 'Masculino',
+      registeredAt: '08/03/2024',
+      risk: _RiskLevel.high,
+    ),
+    _Patient(
+      name: 'Beatriz Costa',
+      age: 36,
+      gender: 'Feminino',
+      registeredAt: '05/03/2024',
+      risk: _RiskLevel.low,
+    ),
+  ];
 
-  int _cholCheck = 1;
-  int _fruits = 1;
-  int _veggies = 1;
-  int _hvyAlcoholConsump = 0;
-  int _anyHealthcare = 1;
-  int _noDocbcCost = 0;
-  int _genHlth = 2;
-  int _mentHlth = 5;
-  int _physHlth = 2;
-  int _diffWalk = 0;
-  int _sex = 1;
-  int _education = 5;
-  int _income = 8;
-
-  bool _loading = false;
-  double _riskPercentage = 0;
-  bool _analyzed = false;
-
-  // Informações sobre cada parâmetro
-  final Map<String, String> _parameterInfo = {
-    'HighBP': 'Pressão Alta\nConsiderada alta se Sistólica ≥ 140 mmHg ou Diastólica ≥ 90 mmHg',
-    'HighChol': 'Colesterol Alto\nConsiderado alto se Total ≥ 200 mg/dL',
-    'BMI': 'Índice de Massa Corporal\nPeso (kg) ÷ Altura² (m)\nNormal: 18.5-24.9 | Sobrepeso: 25-29.9 | Obeso: ≥ 30',
-    'Smoker': 'Fumante\nIndica consumo de tabaco regular',
-    'PhysActivity': 'Atividade Física\nPrática de ≥ 150 min de atividade moderada/semana',
-    'Stroke': 'Histórico de Derrame\nJá sofreu ou foi diagnosticado com AVC',
-    'GenHlth': 'Saúde Geral (1-5)\n1=Excelente | 5=Péssima',
-    'MentHlth': 'Saúde Mental (dias)\nQuantos dias sentiu-se mentalmente não bem',
-    'PhysHlth': 'Saúde Física (dias)\nQuantos dias teve problemas físicos',
-    'DiffWalk': 'Dificuldade para Andar\nDificuldade ou limitação para andar',
-    'Age': 'Idade\nEm anos completos',
-  };
-
-  Future<void> _sendData() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _loading = true);
-
-    try {
-      final response = await _healthService.predictHealth(
-        highBP: _highBP ? 1 : 0,
-        highChol: _highChol ? 1 : 0,
-        cholCheck: _cholCheck,
-        bmi: _bmi.toInt(),
-        smoker: _smoker ? 1 : 0,
-        stroke: _stroke ? 1 : 0,
-        physActivity: _physActivity ? 1 : 0,
-        fruits: _fruits,
-        veggies: _veggies,
-        hvyAlcoholConsump: _hvyAlcoholConsump,
-        anyHealthcare: _anyHealthcare,
-        noDocbcCost: _noDocbcCost,
-        genHlth: _genHlth,
-        mentHlth: _mentHlth,
-        physHlth: _physHlth,
-        diffWalk: _diffWalk,
-        sex: _sex,
-        age: _age,
-        education: _education,
-        income: _income,
-      );
-
-      setState(() {
-        _analyzed = true;
-        _riskPercentage = response.prediction == 1 ? 0.82 : 0.18;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.message)),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _analyzed = true;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
-    }
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
-  void _showParameterInfo(String paramName) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(paramName),
-        content: Text(_parameterInfo[paramName] ?? 'Sem informações'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
+  void _openPrediction() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PredictionScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _searchController.text.trim().toLowerCase();
+    final visiblePatients = _patients
+        .where((patient) => patient.name.toLowerCase().contains(query))
+        .toList();
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F8F7),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 22, 16, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 20),
+                    _buildSearchField(),
+                    const SizedBox(height: 14),
+                    _buildNewPatientButton(),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Pacientes cadastrados',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF173A3A),
+                              ),
+                        ),
+                        Text(
+                          '${visiblePatients.length} pacientes',
+                          style: const TextStyle(
+                            color: Color(0xFF0D8279),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 11),
+                    if (visiblePatients.isEmpty)
+                      const _EmptyPatients()
+                    else
+                      ...visiblePatients.map(_buildPatientCard),
+                    const SizedBox(height: 14),
+                    const _InformationCard(),
+                  ],
+                ),
+              ),
+            ),
+            _buildBottomNavigation(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Olá, Dr. João',
+                style: TextStyle(
+                  color: Color(0xFF718383),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Seus pacientes',
+                style: TextStyle(
+                  color: Color(0xFF173A3A),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          width: 38,
+          height: 38,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.person_outline,
+            color: Color(0xFF56706F),
+            size: 21,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchController,
+      onChanged: (_) => setState(() {}),
+      decoration: InputDecoration(
+        hintText: 'Buscar paciente',
+        hintStyle: const TextStyle(color: Color(0xFF778C8B), fontSize: 13),
+        prefixIcon: const Icon(Icons.search, color: Color(0xFF66807F), size: 22),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: Color(0xFFD8E5E3)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: Color(0xFF0D8279), width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNewPatientButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 41,
+      child: ElevatedButton.icon(
+        onPressed: _openPrediction,
+        icon: const Icon(Icons.add, size: 20),
+        label: const Text('Novo Paciente'),
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: const Color(0xFF0D8279),
+          foregroundColor: Colors.white,
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPatientCard(_Patient patient) {
+    final isHighRisk = patient.risk == _RiskLevel.high;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.fromLTRB(13, 12, 13, 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: const Color(0xFFD8E5E3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  patient.name,
+                  style: const TextStyle(
+                    color: Color(0xFF173A3A),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              _RiskBadge(label: isHighRisk ? 'ALTO' : 'BAIXO', high: isHighRisk),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Row(
+            children: [
+              Text(
+                '${patient.age} anos • ${patient.gender}',
+                style: const TextStyle(color: Color(0xFF718383), fontSize: 11),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Cadastrado em ${patient.registeredAt}',
+                  style: const TextStyle(color: Color(0xFF718383), fontSize: 11),
+                ),
+              ),
+              TextButton(
+                onPressed: _openPrediction,
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF087A72),
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'Ver paciente',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
+  Widget _buildBottomNavigation() {
+    return Container(
+      height: 70,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE0EAE8))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _NavItem(
+            icon: Icons.notifications_none,
+            label: 'Pacientes',
+            selected: _selectedTab == 0,
+            onTap: () => setState(() => _selectedTab = 0),
+          ),
+          _NavItem(
+            icon: Icons.access_time,
+            label: 'Agenda',
+            selected: _selectedTab == 1,
+            onTap: () => setState(() => _selectedTab = 1),
+          ),
+          _NavItem(
+            icon: Icons.person_outline,
+            label: 'Perfil',
+            selected: _selectedTab == 2,
+            onTap: () => setState(() => _selectedTab = 2),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InformationCard extends StatelessWidget {
+  const _InformationCard();
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  const Icon(Icons.favorite, color: Colors.red, size: 32),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'AVALIAÇÃO DE RISCO CARDÍACO',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Indicador de Risco (Card com percentual)
-              if (_analyzed)
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: LinearGradient(
-                        colors: _riskPercentage > 0.5
-                            ? [Colors.blue.shade400, Colors.blue.shade600]
-                            : [Colors.green.shade300, Colors.green.shade500],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Probabilidade de Ataque Cardíaco',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        CircularPercentIndicator(
-                          radius: 60,
-                          lineWidth: 10,
-                          percent: _riskPercentage,
-                          center: Text(
-                            '${(_riskPercentage * 100).toStringAsFixed(0)}%',
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          progressColor: Colors.white,
-                          backgroundColor: Colors.white.withAlpha(100),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _riskPercentage > 0.5
-                                ? Colors.orange.shade700
-                                : Colors.green.shade700,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _riskPercentage > 0.5 ? 'ALTO RISCO' : 'BAIXO RISCO',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 20),
-
-              // Seleção de Paciente
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Dropdown Paciente
-                    const Text(
-                      'Selecione o Paciente',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownSearch<String>(
-                      items: const ['Carlos Silva', 'João Santos', 'Maria Silva'],
-                      selectedItem: _selectedPatient,
-                      popupProps: const PopupProps.menu(
-                        showSearchBox: true,
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedPatient = value ?? 'Carlos Silva';
-                          _analyzed = false;
-                        });
-                      },
-                      dropdownBuilder: (context, selectedItem) {
-                        return Text(
-                          selectedItem ?? 'Carlos Silva',
-                          style: const TextStyle(fontSize: 14),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Idade
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Idade',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Text(
-                              '$_age anos',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => _showParameterInfo('Age'),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.blue,
-                                    width: 2,
-                                  ),
-                                ),
-                                padding: const EdgeInsets.all(2),
-                                child: const Icon(
-                                  Icons.info,
-                                  size: 16,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Slider(
-                      value: _age.toDouble(),
-                      min: 18,
-                      max: 100,
-                      onChanged: (value) {
-                        setState(() {
-                          _age = value.toInt();
-                          _analyzed = false;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // IMC
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'IMC (Índice de Massa Corporal)',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Text(
-                              _bmi.toStringAsFixed(1),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => _showParameterInfo('BMI'),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.blue,
-                                    width: 2,
-                                  ),
-                                ),
-                                padding: const EdgeInsets.all(2),
-                                child: const Icon(
-                                  Icons.info,
-                                  size: 16,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Faixa Etária Normal: +18 anos (Vendo) | Moderado: 25-0 (Laranja) | Alto: +0 (Vermelho)',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Slider(
-                      value: _bmi,
-                      min: 10,
-                      max: 50,
-                      onChanged: (value) {
-                        setState(() {
-                          _bmi = value;
-                          _analyzed = false;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Toggle Switches
-                    _buildToggleSwitch(
-                      'Pressão Alta (HighBP)',
-                      _highBP,
-                      (value) => setState(() {
-                        _highBP = value;
-                        _analyzed = false;
-                      }),
-                      'HighBP',
-                    ),
-                    const SizedBox(height: 12),
-                    _buildToggleSwitch(
-                      'Colesterol Alto (HighChol)',
-                      _highChol,
-                      (value) => setState(() {
-                        _highChol = value;
-                        _analyzed = false;
-                      }),
-                      'HighChol',
-                    ),
-                    const SizedBox(height: 12),
-                    _buildToggleSwitch(
-                      'Fumante (Smoker)',
-                      _smoker,
-                      (value) => setState(() {
-                        _smoker = value;
-                        _analyzed = false;
-                      }),
-                      'Smoker',
-                    ),
-                    const SizedBox(height: 12),
-                    _buildToggleSwitch(
-                      'Atividade Física (PhysActivity)',
-                      _physActivity,
-                      (value) => setState(() {
-                        _physActivity = value;
-                        _analyzed = false;
-                      }),
-                      'PhysActivity',
-                    ),
-                    const SizedBox(height: 12),
-                    _buildToggleSwitch(
-                      'Histórico de Derrame (Stroke)',
-                      _stroke,
-                      (value) => setState(() {
-                        _stroke = value;
-                        _analyzed = false;
-                      }),
-                      'Stroke',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Botões de Ação
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _loading ? () {} : _sendData,
-                  icon: Icon(_analyzed ? Icons.refresh : Icons.search),
-                  label: Text(_loading ? 'Analisando...' : (_analyzed ? 'Reavaliar' : 'Analisar Risco com IA')),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.calendar_today),
-                  label: const Text('Agendar Consulta Preventiva (CRUD 4)'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyan.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(13, 12, 13, 11),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: const Color(0xFFD8E5E3)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.circle, size: 7, color: Color(0xFF2CA27A)),
           ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'O painel usa dados cadastrais e histórico de risco\npara priorizar acompanhamento.',
+              style: TextStyle(
+                color: Color(0xFF718383),
+                fontSize: 11,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyPatients extends StatelessWidget {
+  const _EmptyPatients();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 24),
+      child: Center(
+        child: Text(
+          'Nenhum paciente encontrado',
+          style: TextStyle(color: Color(0xFF718383), fontSize: 13),
         ),
       ),
     );
   }
+}
 
-  Widget _buildToggleSwitch(
-    String label,
-    bool value,
-    Function(bool) onChanged,
-    String paramKey,
-  ) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
+class _RiskBadge extends StatelessWidget {
+  const _RiskBadge({required this.label, required this.high});
+
+  final String label;
+  final bool high;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: high ? const Color(0xFFFFA52F) : const Color(0xFFD9F0ED),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: high ? const Color(0xFF263B3A) : const Color(0xFF0B7770),
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
         ),
-        GestureDetector(
-          onTap: () => _showParameterInfo(paramKey),
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.blue,
-                width: 2,
-              ),
-            ),
-            padding: const EdgeInsets.all(2),
-            child: const Icon(
-              Icons.info,
-              size: 16,
-              color: Colors.blue,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeColor: Colors.red,
-        ),
-      ],
+      ),
     );
   }
 }
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? const Color(0xFF087A72) : const Color(0xFF718383);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 76,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 21),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Patient {
+  const _Patient({
+    required this.name,
+    required this.age,
+    required this.gender,
+    required this.registeredAt,
+    required this.risk,
+  });
+
+  final String name;
+  final int age;
+  final String gender;
+  final String registeredAt;
+  final _RiskLevel risk;
+}
+
+enum _RiskLevel { high, low }
