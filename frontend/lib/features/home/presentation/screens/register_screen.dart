@@ -1,65 +1,72 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/services/auth_service.dart';
-import 'register_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _nameController = TextEditingController();
   final _crmController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
-
-  // Formato aceito: CRM-123456
-  static final _crmRegExp = RegExp(r'^crm-?\d{4,8}$', caseSensitive: false);
+  bool _obscurePassword = true;
 
   // Cores de acordo com o design
   static const primaryColor = Color(0xFF0D8279);
   static const backgroundColor = Color(0xFFF4F8F7);
 
+  // Formato aceito: CRM-123456
+  static final _crmRegExp = RegExp(r'^crm-?\d{4,8}$', caseSensitive: false);
+
   @override
   void dispose() {
+    _nameController.dispose();
     _crmController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
-    final crm = _crmController.text.trim();
-    final password = _passwordController.text;
-
-    if (!_crmRegExp.hasMatch(crm)) {
-      _showError('Informe um CRM válido (ex.: CRM-123456).');
-      return;
-    }
-    if (password.length < 6) {
-      _showError('A senha deve ter pelo menos 6 caracteres.');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      // A navegação é feita automaticamente pelo `app.dart`, que
-      // observa as mudanças de sessão do Firebase Auth.
-      await AuthService.instance.signIn(crm: crm, password: password);
-    } on AuthException catch (e) {
-      _showError(e.message);
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  void _openRegister() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+  InputDecoration _buildInputDecoration({
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Color(0xFF778C8B)),
+      prefixIcon: Icon(icon, color: const Color(0xFF66807F)),
+      suffixIcon: isPassword
+          ? IconButton(
+              icon: Icon(
+                _obscurePassword
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                color: const Color(0xFF66807F),
+                size: 20,
+              ),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
+            )
+          : null,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFD8E5E3)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: primaryColor, width: 1.5),
+      ),
     );
   }
 
@@ -72,53 +79,120 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Future<void> _handleRegister() async {
+    final name = _nameController.text.trim();
+    final crm = _crmController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (name.length < 3) {
+      _showError('Informe seu nome completo.');
+      return;
+    }
+    if (!_crmRegExp.hasMatch(crm)) {
+      _showError('Informe um CRM válido (ex.: CRM-123456).');
+      return;
+    }
+    if (password.length < 6) {
+      _showError('A senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+    if (password != confirmPassword) {
+      _showError('As senhas não coincidem.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await AuthService.instance.signUp(
+        name: name,
+        crm: crm,
+        password: password,
+      );
+
+      // Após o cadastro o usuário já fica autenticado. O `app.dart`
+      // observa o estado da sessão e exibe a HomeScreen, então
+      // basta fechar esta tela.
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } on AuthException catch (e) {
+      _showError(e.message);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            size: 20,
+            color: Color(0xFF173A3A),
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Criar conta',
+          style: TextStyle(
+            color: Color(0xFF173A3A),
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 8.0,
+            ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Icone / Logo
+                // Ícone / Logo
                 Container(
-                  width: 72,
-                  height: 72,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
                     color: primaryColor,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                   child: const Icon(
                     Icons.monitor_heart_outlined,
                     color: Colors.white,
-                    size: 40,
+                    size: 34,
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                // Título e Subtítulo
+                const SizedBox(height: 16),
                 const Text(
-                  'HeartHealth',
+                  'Cadastre-se',
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF173A3A),
                   ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Faça login para avaliar pacientes e consultar\npredições de risco cardíaco.',
+                  'Crie sua conta de médico para avaliar\npacientes e consultar predições.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     color: Color(0xFF718383),
                     height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
 
                 // Card do Formulário
                 Container(
@@ -139,6 +213,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
+                        'Nome completo',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF173A3A),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _nameController,
+                        keyboardType: TextInputType.name,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: _buildInputDecoration(
+                          hint: 'Dra. Maria Oliveira',
+                          icon: Icons.person_outline,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
                         'CRM',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
@@ -148,21 +240,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 8),
                       TextField(
                         controller: _crmController,
-                        decoration: InputDecoration(
-                          hintText: 'CRM-123456',
-                          hintStyle: const TextStyle(color: Color(0xFF778C8B)),
-                          prefixIcon: const Icon(Icons.badge_outlined, color: Color(0xFF66807F)),
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFD8E5E3)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: primaryColor, width: 1.5),
-                          ),
+                        decoration: _buildInputDecoration(
+                          hint: 'CRM-123456',
+                          icon: Icons.badge_outlined,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -176,48 +256,38 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 8),
                       TextField(
                         controller: _passwordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          hintText: '••••••••',
-                          hintStyle: const TextStyle(color: Color(0xFF778C8B)),
-                          prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF66807F)),
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFD8E5E3)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: primaryColor, width: 1.5),
-                          ),
+                        obscureText: _obscurePassword,
+                        decoration: _buildInputDecoration(
+                          hint: 'Mínimo de 6 caracteres',
+                          icon: Icons.lock_outline,
+                          isPassword: true,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Confirmar senha',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF173A3A),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            _showError(
-                              'Recuperação de senha ainda não disponível.',
-                            );
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: primaryColor,
-                          ),
-                          child: const Text(
-                            'Esqueci minha senha',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                      TextField(
+                        controller: _confirmPasswordController,
+                        obscureText: _obscurePassword,
+                        onSubmitted: (_) => _handleRegister(),
+                        decoration: _buildInputDecoration(
+                          hint: 'Repita a senha',
+                          icon: Icons.lock_outline,
+                          isPassword: true,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         height: 46,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _handleLogin,
+                          onPressed: _isLoading ? null : _handleRegister,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
                             foregroundColor: Colors.white,
@@ -236,7 +306,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 )
                               : const Text(
-                                  'Entrar',
+                                  'Criar conta',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -248,28 +318,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // Link para Cadastro
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Não tem conta? ',
-                      style: TextStyle(color: Color(0xFF718383)),
-                    ),
-                    GestureDetector(
-                      onTap: _openRegister,
-                      child: const Text(
-                        'Cadastre-se',
-                        style: TextStyle(
-                          color: primaryColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
 
                 // Mensagem no Rodapé
                 const Row(

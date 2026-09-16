@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/auth_service.dart';
 import 'prediction_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -47,6 +48,30 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const PredictionScreen()),
     );
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sair da conta'),
+        content: const Text('Deseja realmente encerrar a sessão?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sair'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await AuthService.instance.signOut();
+    }
   }
 
   @override
@@ -115,20 +140,29 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Olá, Dr. João',
-                style: TextStyle(
-                  color: Color(0xFF718383),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                ),
+              // Nome do médico logado, lido do Firestore.
+              StreamBuilder<DoctorProfile>(
+                stream: AuthService.instance.doctorProfileStream(),
+                builder: (context, snapshot) {
+                  final name = snapshot.data?.name.trim() ?? '';
+                  final greeting =
+                      name.isEmpty ? 'Olá, médico(a)' : 'Olá, Dr(a). $name';
+                  return Text(
+                    greeting,
+                    style: const TextStyle(
+                      color: Color(0xFF718383),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  );
+                },
               ),
-              SizedBox(height: 4),
-              Text(
+              const SizedBox(height: 4),
+              const Text(
                 'Seus pacientes',
                 style: TextStyle(
                   color: Color(0xFF173A3A),
@@ -139,17 +173,20 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-        Container(
-          width: 38,
-          height: 38,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.person_outline,
-            color: Color(0xFF56706F),
-            size: 21,
+        GestureDetector(
+          onTap: _confirmLogout,
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.person_outline,
+              color: Color(0xFF56706F),
+              size: 21,
+            ),
           ),
         ),
       ],

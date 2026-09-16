@@ -7,14 +7,20 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:frontend/app.dart';
+import 'package:flutter/material.dart';
+
+import 'package:frontend/features/home/presentation/screens/login_screen.dart';
 
 void main() {
-  testWidgets('app starts with patient home screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const App());
+  testWidgets('login screen renders main elements', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: LoginScreen()),
+    );
 
-    expect(find.text('Seus pacientes'), findsOneWidget);
-    expect(find.text('Pacientes cadastrados'), findsOneWidget);
-    expect(find.text('Novo Paciente'), findsOneWidget);
+    expect(find.text('HeartHealth'), findsOneWidget);
+    expect(find.text('Entrar'), findsOneWidget);
+    expect(find.text('Cadastre-se'), findsOneWidget);
+    expect(find.text('CRM'), findsOneWidget);
+    expect(find.text('Senha'), findsOneWidget);
   });
 }
