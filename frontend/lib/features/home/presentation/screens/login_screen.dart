@@ -13,6 +13,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _crmController = TextEditingController();
   final _passwordController = TextEditingController();
+  String? _loginErrorMessage;
 
   // Cores de acordo com o design
   static const primaryColor = Color(0xFF0D8279);
@@ -26,7 +27,42 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() {
-    // Navega para a HomeScreen substituindo a tela de Login
+    final crm = _crmController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (crm.isEmpty || password.isEmpty) {
+      setState(() {
+        _loginErrorMessage = 'Informe o CRM e a senha para continuar.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Informe o CRM e a senha para continuar.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final expectedCrm = 'CRM-123456';
+    final expectedPassword = '123456';
+
+    if (crm.toUpperCase() != expectedCrm || password != expectedPassword) {
+      setState(() {
+        _loginErrorMessage = 'CRM ou senha incorretos. Tente novamente.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('CRM ou senha incorretos. Tente novamente.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _loginErrorMessage = null;
+    });
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
@@ -108,6 +144,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 8),
                       TextField(
                         controller: _crmController,
+                        onChanged: (_) {
+                          if (_loginErrorMessage != null) {
+                            setState(() => _loginErrorMessage = null);
+                          }
+                        },
                         decoration: InputDecoration(
                           hintText: 'CRM-123456',
                           hintStyle: const TextStyle(color: Color(0xFF778C8B)),
@@ -137,6 +178,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextField(
                         controller: _passwordController,
                         obscureText: true,
+                        onChanged: (_) {
+                          if (_loginErrorMessage != null) {
+                            setState(() => _loginErrorMessage = null);
+                          }
+                        },
                         decoration: InputDecoration(
                           hintText: '••••••••',
                           hintStyle: const TextStyle(color: Color(0xFF778C8B)),
@@ -152,6 +198,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(color: primaryColor, width: 1.5),
                           ),
+                          errorText: _loginErrorMessage,
+                          errorStyle: const TextStyle(color: Colors.red),
                         ),
                       ),
                       const SizedBox(height: 8),
