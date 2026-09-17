@@ -76,6 +76,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
           backgroundColor: Color(0xFF0E5B53),
         ),
       );
+      Navigator.pop(context);
     }
   }
 
