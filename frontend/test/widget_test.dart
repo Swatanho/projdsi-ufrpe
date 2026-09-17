@@ -10,10 +10,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/app.dart';
 
 void main() {
-  testWidgets('app starts with home screen', (WidgetTester tester) async {
+  testWidgets('app starts with patient home screen', (WidgetTester tester) async {
     await tester.pumpWidget(const App());
 
-    expect(find.text('Meu Projeto Saúde'), findsWidgets);
-    expect(find.text('Aplicativo de saúde'), findsOneWidget);
+    expect(find.text('Seus pacientes'), findsOneWidget);
+    expect(find.text('Pacientes cadastrados'), findsOneWidget);
+    expect(find.text('Novo Paciente'), findsOneWidget);
   });
 }
