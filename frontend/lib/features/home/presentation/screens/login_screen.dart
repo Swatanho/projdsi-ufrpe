@@ -174,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: double.infinity,
                         height: 46,
                         child: ElevatedButton(
-                          onPressed: _handleLogin, // <--- Chamada de navegação para a HomeScreen
+                          onPressed: _handleLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
                             foregroundColor: Colors.white,
