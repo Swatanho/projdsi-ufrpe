@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 // Importando a HomeScreen para conseguir navegar até ela
 import '../../../home/presentation/screens/home_screen.dart';
+import 'doctor_register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -205,7 +206,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(color: Color(0xFF718383)),
                     ),
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const DoctorRegisterScreen(),
+                          ),
+                        );
+                      },
                       child: const Text(
                         'Cadastre-se',
                         style: TextStyle(
