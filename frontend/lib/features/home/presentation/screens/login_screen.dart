@@ -57,6 +57,12 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _openRegister() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const DoctorRegisterScreen()),
+    );
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -192,7 +198,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            _showError(
+                              'Recuperação de senha ainda não disponível.',
+                            );
+                          },
                           style: TextButton.styleFrom(
                             foregroundColor: primaryColor,
                           ),
@@ -248,13 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(color: Color(0xFF718383)),
                     ),
                     GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const DoctorRegisterScreen(),
-                          ),
-                        );
-                      },
+                      onTap: _openRegister,
                       child: const Text(
                         'Cadastre-se',
                         style: TextStyle(

@@ -11,7 +11,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Meu Projeto Saúde',
+      title: 'HeartHealth',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       // Observa o estado da sessão do Firebase Auth: exibe a HomeScreen
@@ -35,3 +35,4 @@ class App extends StatelessWidget {
     );
   }
 }
+

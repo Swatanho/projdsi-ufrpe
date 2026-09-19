@@ -1,0 +1,30 @@
+Resolving dependencies...
+Downloading packages...
+  dropdown_search 5.0.6 (7.0.0 available)
+  flutter_lints 5.0.0 (6.0.0 available)
+  lints 5.1.1 (6.1.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  test_api 0.7.12 (0.7.14 available)
+Got dependencies!
+5 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing frontend...                                           
+
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\screens\login_screen.dart:132:45 - deprecated_member_use
+   info - The private field _cholCheck could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:30:7 - prefer_final_fields
+   info - The private field _fruits could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:31:7 - prefer_final_fields
+   info - The private field _veggies could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:32:7 - prefer_final_fields
+   info - The private field _hvyAlcoholConsump could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:33:7 - prefer_final_fields
+   info - The private field _anyHealthcare could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:34:7 - prefer_final_fields
+   info - The private field _noDocbcCost could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:35:7 - prefer_final_fields
+   info - The private field _genHlth could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:36:7 - prefer_final_fields
+   info - The private field _mentHlth could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:37:7 - prefer_final_fields
+   info - The private field _physHlth could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:38:7 - prefer_final_fields
+   info - The private field _diffWalk could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:39:7 - prefer_final_fields
+   info - The private field _sex could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:40:7 - prefer_final_fields
+   info - The private field _education could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:41:7 - prefer_final_fields
+   info - The private field _income could be 'final'. Try making the field 'final' - lib\features\home\presentation\screens\prediction_screen.dart:42:7 - prefer_final_fields
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\screens\prediction_screen.dart:547:11 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\screens\register_screen.dart:206:45 - deprecated_member_use
+
+16 issues found. (ran in 6.7s)
