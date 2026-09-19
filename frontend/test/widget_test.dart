@@ -8,6 +8,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+<<<<<<< HEAD
+=======
+import 'package:flutter/material.dart';
+
+>>>>>>> 300b6ed648c736d6e5104ba75e939227e054118f
 import 'package:frontend/features/home/presentation/screens/login_screen.dart';
 
 void main() {

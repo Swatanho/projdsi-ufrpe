@@ -45,8 +45,11 @@ class AuthException implements Exception {
 /// e-mail sintético (ex.: `CRM-123456` -> `crm123456@hearthealth.app`).
 /// Como o e-mail é único no Firebase Auth, isso também garante que
 /// cada CRM só possa ser cadastrado uma vez.
+<<<<<<< HEAD
 ///
 /// O e-mail real informado no cadastro é guardado no perfil do Firestore.
+=======
+>>>>>>> 300b6ed648c736d6e5104ba75e939227e054118f
 class AuthService {
   AuthService._()
       : _auth = FirebaseAuth.instance,
@@ -87,14 +90,20 @@ class AuthService {
   }
 
   /// Cria a conta (Firebase Auth) e o perfil do médico (Firestore).
+<<<<<<< HEAD
   ///
   /// [email] é o e-mail real informado na tela de cadastro, guardado no
   /// perfil; a autenticação em si usa o e-mail sintético derivado do CRM.
+=======
+>>>>>>> 300b6ed648c736d6e5104ba75e939227e054118f
   Future<void> signUp({
     required String name,
     required String crm,
     required String password,
+<<<<<<< HEAD
     String? email,
+=======
+>>>>>>> 300b6ed648c736d6e5104ba75e939227e054118f
   }) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
@@ -112,7 +121,11 @@ class AuthService {
       await _firestore.collection(_doctorsCollection).doc(user.uid).set({
         'name': name.trim(),
         'crm': normalizeCrm(crm).toUpperCase(),
+<<<<<<< HEAD
         'email': email?.trim().isNotEmpty == true ? email!.trim() : user.email,
+=======
+        'email': user.email,
+>>>>>>> 300b6ed648c736d6e5104ba75e939227e054118f
         'createdAt': FieldValue.serverTimestamp(),
       });
     } on FirebaseAuthException catch (e) {
@@ -160,4 +173,8 @@ class AuthService {
         return 'Ocorreu um erro ao autenticar (${e.code}). Tente novamente.';
     }
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 300b6ed648c736d6e5104ba75e939227e054118f

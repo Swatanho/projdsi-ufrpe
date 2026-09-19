@@ -73,4 +73,8 @@ class DefaultFirebaseOptions {
     storageBucket: 'hearthealth-dsi.firebasestorage.app',
     measurementId: 'G-5LB1JRF8VJ',
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 300b6ed648c736d6e5104ba75e939227e054118f

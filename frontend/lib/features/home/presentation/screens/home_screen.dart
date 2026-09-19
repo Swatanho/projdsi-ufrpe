@@ -70,8 +70,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed == true) {
+<<<<<<< HEAD
       // O `app.dart` observa a sessão e volta para a tela de login
       // automaticamente após o logout.
+=======
+>>>>>>> 300b6ed648c736d6e5104ba75e939227e054118f
       await AuthService.instance.signOut();
     }
   }
@@ -146,6 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+<<<<<<< HEAD
               // Saudação com o nome real do médico logado (Firestore).
               StreamBuilder<DoctorProfile>(
                 stream: AuthService.instance.doctorProfileStream(),
@@ -153,6 +157,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   final name = snapshot.data?.name;
                   final greeting =
                       (name == null || name.isEmpty) ? 'Olá, Dr(a).' : 'Olá, $name';
+=======
+              // Nome do médico logado, lido do Firestore.
+              StreamBuilder<DoctorProfile>(
+                stream: AuthService.instance.doctorProfileStream(),
+                builder: (context, snapshot) {
+                  final name = snapshot.data?.name.trim() ?? '';
+                  final greeting =
+                      name.isEmpty ? 'Olá, médico(a)' : 'Olá, Dr(a). $name';
+>>>>>>> 300b6ed648c736d6e5104ba75e939227e054118f
                   return Text(
                     greeting,
                     style: const TextStyle(
@@ -185,7 +198,11 @@ class _HomeScreenState extends State<HomeScreen> {
               shape: BoxShape.circle,
             ),
             child: const Icon(
+<<<<<<< HEAD
               Icons.logout,
+=======
+              Icons.person_outline,
+>>>>>>> 300b6ed648c736d6e5104ba75e939227e054118f
               color: Color(0xFF56706F),
               size: 21,
             ),
