@@ -37,6 +37,9 @@ dependencies:
   http: ^1.6.0
   percent_indicator: ^4.1.0
   dropdown_search: ^5.0.5
+  firebase_core: ^4.15.0
+  firebase_auth: ^6.7.0
+  cloud_firestore: ^6.10.0
 
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/auth_service.dart';
+
 class DoctorRegisterScreen extends StatefulWidget {
   const DoctorRegisterScreen({super.key});
 
@@ -16,11 +18,15 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
   double _passwordStrength = 0.0;
   String _strengthLabel = '';
+
+  // Formato aceito: CRM-123456
+  static final _crmRegExp = RegExp(r'^crm-?\d{4,8}$', caseSensitive: false);
 
   @override
   void dispose() {
@@ -68,16 +74,57 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
     return const Color(0xFF0E5B53);
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final name = _nameController.text.trim();
+    final crm = _crmController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    // Validação extra: o formato do CRM precisa ser CRM-123456.
+    if (!_crmRegExp.hasMatch(crm)) {
+      _showError('Informe um CRM válido (ex.: CRM-123456).');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      // Cria a conta no Firebase Auth e o perfil no Firestore
+      // (coleção `doctors/{uid}`).
+      await AuthService.instance.signUp(
+        name: name,
+        crm: crm,
+        password: password,
+        email: email,
+      );
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Dados do Médico salvos com sucesso!'),
+          content: Text('Cadastro criado com sucesso!'),
           backgroundColor: Color(0xFF0E5B53),
         ),
       );
       Navigator.pop(context);
+    } on AuthException catch (e) {
+      _showError(e.message);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFF263B3A),
+      ),
+    );
   }
 
   InputDecoration _inputDecoration(String hint, IconData icon) {
@@ -261,7 +308,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                       const SizedBox(height: 32),
 
                       ElevatedButton(
-                        onPressed: _submitForm,
+                        onPressed: _isLoading ? null : _submitForm,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           backgroundColor: const Color(0xFF0E5B53),
@@ -269,7 +316,16 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Salvar Cadastro', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Salvar Cadastro', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-// Importando a HomeScreen para conseguir navegar até ela
-import '../../../home/presentation/screens/home_screen.dart';
+import '../../../../core/services/auth_service.dart';
 import 'doctor_register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,6 +14,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final _crmController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  bool _isLoading = false;
+
+  // Formato aceito: CRM-123456
+  static final _crmRegExp = RegExp(r'^crm-?\d{4,8}$', caseSensitive: false);
+
   // Cores de acordo com o design
   static const primaryColor = Color(0xFF0D8279);
   static const backgroundColor = Color(0xFFF4F8F7);
@@ -26,10 +30,45 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
-    // Navega para a HomeScreen substituindo a tela de Login
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
+  Future<void> _handleLogin() async {
+    final crm = _crmController.text.trim();
+    final password = _passwordController.text;
+
+    if (!_crmRegExp.hasMatch(crm)) {
+      _showError('Informe um CRM válido (ex.: CRM-123456).');
+      return;
+    }
+    if (password.length < 6) {
+      _showError('A senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      // A navegação até a HomeScreen acontece automaticamente no `app.dart`,
+      // que observa as mudanças de sessão do Firebase Auth.
+      await AuthService.instance.signIn(crm: crm, password: password);
+    } on AuthException catch (e) {
+      _showError(e.message);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _openRegister() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const DoctorRegisterScreen()),
+    );
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFF263B3A),
+      ),
     );
   }
 
@@ -159,7 +198,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            _showError(
+                              'Recuperação de senha ainda não disponível.',
+                            );
+                          },
                           style: TextButton.styleFrom(
                             foregroundColor: primaryColor,
                           ),
@@ -174,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: double.infinity,
                         height: 46,
                         child: ElevatedButton(
-                          onPressed: _handleLogin,
+                          onPressed: _isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
                             foregroundColor: Colors.white,
@@ -183,13 +226,22 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            'Entrar',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Entrar',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
@@ -206,13 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(color: Color(0xFF718383)),
                     ),
                     GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const DoctorRegisterScreen(),
-                          ),
-                        );
-                      },
+                      onTap: _openRegister,
                       child: const Text(
                         'Cadastre-se',
                         style: TextStyle(
