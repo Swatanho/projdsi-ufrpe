@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../../../../core/services/auth_service.dart';
 
 class DoctorRegisterScreen extends StatefulWidget {
@@ -18,15 +17,12 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   double _passwordStrength = 0.0;
   String _strengthLabel = '';
-
-  // Formato aceito: CRM-123456
-  static final _crmRegExp = RegExp(r'^crm-?\d{4,8}$', caseSensitive: false);
 
   @override
   void dispose() {
@@ -75,56 +71,41 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
   }
 
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
 
-    final name = _nameController.text.trim();
-    final crm = _crmController.text.trim();
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
+      try {
+        // Usa o teu AuthService oficial para criar a conta e guardar no Firestore
+        await AuthService.instance.signUp(
+          name: _nameController.text.trim(),
+          crm: _crmController.text.trim(),
+          password: _passwordController.text,
+          email: _emailController.text.trim(),
+        );
 
-    // Validação extra: o formato do CRM precisa ser CRM-123456.
-    if (!_crmRegExp.hasMatch(crm)) {
-      _showError('Informe um CRM válido (ex.: CRM-123456).');
-      return;
-    }
+        if (!mounted) return;
 
-    setState(() => _isLoading = true);
-    try {
-      // Cria a conta no Firebase Auth e o perfil no Firestore
-      // (coleção `doctors/{uid}`).
-      await AuthService.instance.signUp(
-        name: name,
-        crm: crm,
-        password: password,
-        email: email,
-      );
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cadastro criado com sucesso!'),
-          backgroundColor: Color(0xFF0E5B53),
-        ),
-      );
-      Navigator.pop(context);
-    } on AuthException catch (e) {
-      _showError(e.message);
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Médico cadastrado com sucesso! Faça login.'),
+            backgroundColor: Color(0xFF0E5B53),
+          ),
+        );
+        Navigator.pop(context);
+      } on AuthException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro inesperado: $e'), backgroundColor: Colors.red),
+        );
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: const Color(0xFF263B3A),
-      ),
-    );
   }
 
   InputDecoration _inputDecoration(String hint, IconData icon) {
@@ -219,8 +200,17 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _nameController,
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                         decoration: _inputDecoration('Como podemos chamar você?', Icons.person_outline),
-                        validator: (value) => value == null || value.trim().isEmpty ? 'Informe seu nome.' : null,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Informe seu nome.';
+                          }
+                          if (!RegExp(r'^[a-zA-ZÀ-úÇç\s]+$').hasMatch(value)) {
+                            return 'Não são permitidos números ou carateres especiais.';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
 
@@ -228,8 +218,17 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _crmController,
-                        decoration: _inputDecoration('000000', Icons.badge_outlined),
-                        validator: (value) => value == null || value.trim().isEmpty ? 'Informe seu CRM.' : null,
+                        decoration: _inputDecoration('CRM-123456', Icons.badge_outlined),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Informe seu CRM.';
+                          }
+                          final crmRegex = RegExp(r'^CRM-\d+$', caseSensitive: false);
+                          if (!crmRegex.hasMatch(value.trim())) {
+                            return 'Informe um CRM válido (ex.: CRM-123456).';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
 
@@ -318,12 +317,9 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                         ),
                         child: _isLoading
                             ? const SizedBox(
-                                width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
+                                width: 20,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
                             : const Text('Salvar Cadastro', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
