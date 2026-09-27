@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/services/health_service.dart';
 
 class PredictionScreen extends StatefulWidget {
-  const PredictionScreen({super.key});
+  const PredictionScreen({super.key, this.patientName, this.patientAge = 62});
+
+  final String? patientName;
+  final int patientAge;
 
   @override
   State<PredictionScreen> createState() => _PredictionScreenState();
@@ -13,9 +16,10 @@ class _PredictionScreenState extends State<PredictionScreen> {
   final HealthService _healthService = HealthService();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _bmiController = TextEditingController(text: '24.5');
+  final TextEditingController _bmiController = TextEditingController(
+    text: '24.5',
+  );
 
-  final int _age = 62;
   double _bmi = 24.5;
   bool _highBP = true;
   bool _highChol = false;
@@ -69,7 +73,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
         physHlth: _physHlth,
         diffWalk: _diffWalk,
         sex: _sex,
-        age: _age,
+        age: widget.patientAge,
         education: _education,
         income: _income,
       );
@@ -119,7 +123,11 @@ class _PredictionScreenState extends State<PredictionScreen> {
     );
   }
 
-  Widget _buildSwitchRow(String label, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildSwitchRow(
+    String label,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -127,10 +135,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF1F2D2D),
-              ),
+              style: const TextStyle(fontSize: 14, color: Color(0xFF1F2D2D)),
             ),
           ),
           Transform.scale(
@@ -149,7 +154,13 @@ class _PredictionScreenState extends State<PredictionScreen> {
     );
   }
 
-  Widget _buildSliderField(String label, int value, int min, int max, ValueChanged<double> onChanged) {
+  Widget _buildSliderField(
+    String label,
+    int value,
+    int min,
+    int max,
+    ValueChanged<double> onChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -158,10 +169,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF1F2D2D),
-              ),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF1F2D2D)),
             ),
             Text(
               '$value / $max',
@@ -215,7 +223,11 @@ class _PredictionScreenState extends State<PredictionScreen> {
                     ),
                     child: IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.arrow_back, size: 18, color: Color(0xFF1F2D2D)),
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        size: 18,
+                        color: Color(0xFF1F2D2D),
+                      ),
                       padding: EdgeInsets.zero,
                     ),
                   ),
@@ -235,6 +247,22 @@ class _PredictionScreenState extends State<PredictionScreen> {
                 ],
               ),
               const SizedBox(height: 18),
+              if (widget.patientName != null) ...[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Paciente: ${widget.patientName}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF718383),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
               Expanded(
                 child: SingleChildScrollView(
                   child: Form(
@@ -263,13 +291,22 @@ class _PredictionScreenState extends State<PredictionScreen> {
                               const SizedBox(height: 8),
                               TextFormField(
                                 controller: _bmiController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
                                 onChanged: _updateBmiFromText,
                                 decoration: InputDecoration(
                                   filled: true,
                                   fillColor: const Color(0xFFF0F4F3),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                                  prefixIcon: const Icon(Icons.monitor_weight, color: Color(0xFF0D8279)),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 14,
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.monitor_weight,
+                                    color: Color(0xFF0D8279),
+                                  ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: BorderSide.none,
@@ -280,7 +317,10 @@ class _PredictionScreenState extends State<PredictionScreen> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFF0D8279), width: 1.5),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFF0D8279),
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
                                 validator: (value) {
@@ -305,11 +345,32 @@ class _PredictionScreenState extends State<PredictionScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildSectionTitle('HISTÓRICO DE SAÚDE'),
-                              _buildSwitchRow('Pressão Alta', _highBP, (value) => setState(() => _highBP = value)),
-                              _buildSwitchRow('Colesterol Alto', _highChol, (value) => setState(() => _highChol = value)),
-                              _buildSwitchRow('Fumante', _smoker, (value) => setState(() => _smoker = value)),
-                              _buildSwitchRow('Atividade Física', _physActivity, (value) => setState(() => _physActivity = value)),
-                              _buildSwitchRow('AVC / Derrame', _stroke, (value) => setState(() => _stroke = value)),
+                              _buildSwitchRow(
+                                'Pressão Alta',
+                                _highBP,
+                                (value) => setState(() => _highBP = value),
+                              ),
+                              _buildSwitchRow(
+                                'Colesterol Alto',
+                                _highChol,
+                                (value) => setState(() => _highChol = value),
+                              ),
+                              _buildSwitchRow(
+                                'Fumante',
+                                _smoker,
+                                (value) => setState(() => _smoker = value),
+                              ),
+                              _buildSwitchRow(
+                                'Atividade Física',
+                                _physActivity,
+                                (value) =>
+                                    setState(() => _physActivity = value),
+                              ),
+                              _buildSwitchRow(
+                                'AVC / Derrame',
+                                _stroke,
+                                (value) => setState(() => _stroke = value),
+                              ),
                             ],
                           ),
                         ),
@@ -325,13 +386,25 @@ class _PredictionScreenState extends State<PredictionScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildSectionTitle('SAÚDE GERAL'),
-                              _buildSliderField('Saúde Física (1 a 30)', _physHlth, 1, 30, (value) {
-                                setState(() => _physHlth = value.round());
-                              }),
+                              _buildSliderField(
+                                'Saúde Física (1 a 30)',
+                                _physHlth,
+                                1,
+                                30,
+                                (value) {
+                                  setState(() => _physHlth = value.round());
+                                },
+                              ),
                               const SizedBox(height: 14),
-                              _buildSliderField('Saúde Mental (1 a 30)', _mentHlth, 1, 30, (value) {
-                                setState(() => _mentHlth = value.round());
-                              }),
+                              _buildSliderField(
+                                'Saúde Mental (1 a 30)',
+                                _mentHlth,
+                                1,
+                                30,
+                                (value) {
+                                  setState(() => _mentHlth = value.round());
+                                },
+                              ),
                             ],
                           ),
                         ),
