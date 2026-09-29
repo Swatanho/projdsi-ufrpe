@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../features/patients/screens/patient_register_screen.dart';
 import 'prediction_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -13,6 +14,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedTab = 0;
+  void _openPatientRegister() {
+    final doctorId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PatientRegisterScreen(doctorId: doctorId),
+      ),
+    );
+  }
 
   final List<_Patient> _patients = const [
     _Patient(
@@ -223,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
       width: double.infinity,
       height: 41,
       child: ElevatedButton.icon(
-        onPressed: _openPrediction,
+        onPressed: _openPatientRegister,
         icon: const Icon(Icons.add, size: 20),
         label: const Text('Novo Paciente'),
         style: ElevatedButton.styleFrom(
