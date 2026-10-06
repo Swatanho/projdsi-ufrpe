@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:frontend/features/home/presentation/screens/patient_details_screen.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../features/patients/screens/patient_register_screen.dart';
 import 'prediction_screen.dart';
