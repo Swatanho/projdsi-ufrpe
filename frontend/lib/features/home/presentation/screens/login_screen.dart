@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/services/auth_service.dart';
 import 'doctor_register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -129,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: Border.all(color: const Color(0xFFD8E5E3)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
+                        color: Colors.black.withValues(alpha: 0.02),
                         blurRadius: 15,
                         offset: const Offset(0, 4),
                       ),
@@ -199,8 +200,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {
-                            _showError(
-                              'Recuperação de senha ainda não disponível.',
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordScreen()),
                             );
                           },
                           style: TextButton.styleFrom(
