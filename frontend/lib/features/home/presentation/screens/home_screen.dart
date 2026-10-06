@@ -54,8 +54,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openPrediction() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const PredictionScreen()));
+  }
+
+  void _openPatientDetails(_Patient patient) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const PredictionScreen()),
+      MaterialPageRoute(
+        builder: (_) => PatientDetailsScreen(
+          patientName: patient.name,
+          patientAge: patient.age,
+          patientGender: patient.gender,
+          registeredAt: patient.registeredAt,
+          riskLabel: patient.risk == _RiskLevel.high
+              ? 'Alto Risco'
+              : 'Risco Baixo',
+          isHighRisk: patient.risk == _RiskLevel.high,
+        ),
+      ),
     );
   }
 
@@ -114,7 +131,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           'Pacientes cadastrados',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: const Color(0xFF173A3A),
                               ),
@@ -160,8 +178,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 stream: AuthService.instance.doctorProfileStream(),
                 builder: (context, snapshot) {
                   final name = snapshot.data?.name;
-                  final greeting =
-                      (name == null || name.isEmpty) ? 'Olá, Dr(a).' : 'Olá, $name';
+                  final greeting = (name == null || name.isEmpty)
+                      ? 'Olá, Dr(a).'
+                      : 'Olá, $name';
                   return Text(
                     greeting,
                     style: const TextStyle(
@@ -193,11 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.logout,
-              color: Color(0xFF56706F),
-              size: 21,
-            ),
+            child: const Icon(Icons.logout, color: Color(0xFF56706F), size: 21),
           ),
         ),
       ],
@@ -211,7 +226,11 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: InputDecoration(
         hintText: 'Buscar paciente',
         hintStyle: const TextStyle(color: Color(0xFF778C8B), fontSize: 13),
-        prefixIcon: const Icon(Icons.search, color: Color(0xFF66807F), size: 22),
+        prefixIcon: const Icon(
+          Icons.search,
+          color: Color(0xFF66807F),
+          size: 22,
+        ),
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(vertical: 14),
@@ -241,7 +260,9 @@ class _HomeScreenState extends State<HomeScreen> {
           foregroundColor: Colors.white,
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(13),
+          ),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         ),
       ),
@@ -252,63 +273,74 @@ class _HomeScreenState extends State<HomeScreen> {
     final isHighRisk = patient.risk == _RiskLevel.high;
     return Container(
       margin: const EdgeInsets.only(bottom: 9),
-      padding: const EdgeInsets.fromLTRB(13, 12, 13, 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(13),
         border: Border.all(color: const Color(0xFFD8E5E3)),
       ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  patient.name,
-                  style: const TextStyle(
-                    color: Color(0xFF173A3A),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(13),
+        child: InkWell(
+          onTap: () => _openPatientDetails(patient),
+          borderRadius: BorderRadius.circular(13),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(13, 12, 13, 10),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        patient.name,
+                        style: const TextStyle(
+                          color: Color(0xFF173A3A),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    _RiskBadge(
+                      label: isHighRisk ? 'ALTO' : 'BAIXO',
+                      high: isHighRisk,
+                    ),
+                  ],
                 ),
-              ),
-              _RiskBadge(label: isHighRisk ? 'ALTO' : 'BAIXO', high: isHighRisk),
-            ],
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Text(
+                      '${patient.age} anos • ${patient.gender}',
+                      style: const TextStyle(
+                        color: Color(0xFF718383),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 9),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Cadastrado em ${patient.registeredAt}',
+                        style: const TextStyle(
+                          color: Color(0xFF718383),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Color(0xFF718383),
+                      size: 19,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 3),
-          Row(
-            children: [
-              Text(
-                '${patient.age} anos • ${patient.gender}',
-                style: const TextStyle(color: Color(0xFF718383), fontSize: 11),
-              ),
-            ],
-          ),
-          const SizedBox(height: 9),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Cadastrado em ${patient.registeredAt}',
-                  style: const TextStyle(color: Color(0xFF718383), fontSize: 11),
-                ),
-              ),
-              TextButton(
-                onPressed: _openPrediction,
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF087A72),
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text(
-                  'Ver paciente',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
