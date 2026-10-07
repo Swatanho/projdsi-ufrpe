@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../features/patients/screens/patient_register_screen.dart';
-import 'prediction_screen.dart';
+import 'patient_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -51,12 +51,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _openPrediction() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const PredictionScreen()));
   }
 
   void _openPatientDetails(_Patient patient) {
