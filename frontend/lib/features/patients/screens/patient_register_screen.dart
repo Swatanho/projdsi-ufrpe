@@ -34,6 +34,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
 
       try {
         final newPatient = PatientModel(
+          doctorId: widget.doctorId,
           name: _nameController.text.trim(),
           age: _age.toInt(),
           gender: _selectedGender,
