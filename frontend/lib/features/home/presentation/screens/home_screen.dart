@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:frontend/features/home/presentation/screens/patient_details_screen.dart';
-import '../../../../core/services/auth_service.dart';
+
+import '../../../../models/patient_model.dart';
+import '../../../../services/auth_service.dart';
+import '../../../../services/doctor_service.dart';
+import '../../../../services/patient_service.dart';
 import '../../../../features/patients/screens/patient_register_screen.dart';
 import 'patient_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.patientsStream, this.doctorProfileStream});
+
+  final Stream<List<PatientModel>>? patientsStream;
+  final Stream<DoctorModel>? doctorProfileStream;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -15,8 +20,26 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedTab = 0;
+  late Stream<List<PatientModel>> _patientsStream;
+  late final Stream<DoctorModel> _doctorProfileStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _patientsStream =
+        widget.patientsStream ?? PatientService().watchAllPatients();
+    _doctorProfileStream =
+        widget.doctorProfileStream ?? DoctorService.instance.profileStream();
+  }
+
+  void _retryLoadingPatients() {
+    setState(() => _patientsStream = PatientService().watchAllPatients());
+  }
+
   void _openPatientRegister() {
-    final doctorId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final doctorId = AuthService.instance.currentUserId;
+    if (doctorId == null) return;
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PatientRegisterScreen(doctorId: doctorId),
@@ -24,50 +47,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  final List<_Patient> _patients = const [
-    _Patient(
-      name: 'Ana Silva',
-      age: 42,
-      gender: 'Feminino',
-      registeredAt: '12/03/2024',
-      risk: _RiskLevel.high,
-    ),
-    _Patient(
-      name: 'Carlos Mendes',
-      age: 58,
-      gender: 'Masculino',
-      registeredAt: '08/03/2024',
-      risk: _RiskLevel.high,
-    ),
-    _Patient(
-      name: 'Beatriz Costa',
-      age: 36,
-      gender: 'Feminino',
-      registeredAt: '05/03/2024',
-      risk: _RiskLevel.low,
-    ),
-  ];
-
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
-  void _openPatientDetails(_Patient patient) {
+  void _openPatientDetails(PatientModel patient) {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PatientDetailsScreen(
-          patientName: patient.name,
-          patientAge: patient.age,
-          patientGender: patient.gender,
-          registeredAt: patient.registeredAt,
-          riskLabel: patient.risk == _RiskLevel.high
-              ? 'Alto Risco'
-              : 'Risco Baixo',
-          isHighRisk: patient.risk == _RiskLevel.high,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => PatientDetailsScreen(patient: patient)),
     );
   }
 
@@ -99,11 +87,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final query = _searchController.text.trim().toLowerCase();
-    final visiblePatients = _patients
-        .where((patient) => patient.name.toLowerCase().contains(query))
-        .toList();
-
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8F7),
       body: SafeArea(
@@ -121,34 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 14),
                     _buildNewPatientButton(),
                     const SizedBox(height: 14),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Pacientes cadastrados',
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF173A3A),
-                              ),
-                        ),
-                        Text(
-                          '${visiblePatients.length} pacientes',
-                          style: const TextStyle(
-                            color: Color(0xFF0D8279),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 11),
-                    if (visiblePatients.isEmpty)
-                      const _EmptyPatients()
-                    else
-                      ...visiblePatients.map(_buildPatientCard),
-                    const SizedBox(height: 14),
-                    const _InformationCard(),
+                    _buildPatientDirectory(),
                   ],
                 ),
               ),
@@ -169,8 +125,8 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Saudação com o nome real do médico logado (Firestore).
-              StreamBuilder<DoctorProfile>(
-                stream: AuthService.instance.doctorProfileStream(),
+              StreamBuilder<DoctorModel>(
+                stream: _doctorProfileStream,
                 builder: (context, snapshot) {
                   final name = snapshot.data?.name;
                   final greeting = (name == null || name.isEmpty)
@@ -188,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Seus pacientes',
+                'Todos os pacientes',
                 style: TextStyle(
                   color: Color(0xFF173A3A),
                   fontSize: 20,
@@ -264,8 +220,70 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPatientCard(_Patient patient) {
-    final isHighRisk = patient.risk == _RiskLevel.high;
+  Widget _buildPatientDirectory() {
+    return StreamBuilder<List<PatientModel>>(
+      stream: _patientsStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _PatientLoadError(onRetry: _retryLoadingPatients);
+        }
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 28),
+            child: Center(
+              child: CircularProgressIndicator(color: Color(0xFF0D8279)),
+            ),
+          );
+        }
+
+        final query = _searchController.text.trim().toLowerCase();
+        final patients = (snapshot.data ?? const <PatientModel>[])
+            .where((patient) => patient.name.toLowerCase().contains(query))
+            .toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Pacientes cadastrados',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF173A3A),
+                  ),
+                ),
+                Text(
+                  '${patients.length} pacientes',
+                  style: const TextStyle(
+                    color: Color(0xFF0D8279),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 11),
+            if (patients.isEmpty)
+              _EmptyPatients(
+                message: query.isEmpty
+                    ? 'Nenhum paciente cadastrado ainda'
+                    : 'Nenhum paciente encontrado',
+              )
+            else
+              ...patients.map(_buildPatientCard),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPatientCard(PatientModel patient) {
+    final registeredAt = MaterialLocalizations.of(
+      context,
+    ).formatMediumDate(patient.createdAt);
     return Container(
       margin: const EdgeInsets.only(bottom: 9),
       decoration: BoxDecoration(
@@ -295,17 +313,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-                    _RiskBadge(
-                      label: isHighRisk ? 'ALTO' : 'BAIXO',
-                      high: isHighRisk,
-                    ),
+                    const _PatientBadge(label: 'CADASTRADO'),
                   ],
                 ),
                 const SizedBox(height: 3),
                 Row(
                   children: [
                     Text(
-                      '${patient.age} anos • ${patient.gender}',
+                      '${patient.age} anos • ${patient.gender} • IMC ${patient.bmi.toStringAsFixed(1)}',
                       style: const TextStyle(
                         color: Color(0xFF718383),
                         fontSize: 11,
@@ -318,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Cadastrado em ${patient.registeredAt}',
+                        'Cadastrado em $registeredAt',
                         style: const TextStyle(
                           color: Color(0xFF718383),
                           fontSize: 11,
@@ -374,35 +389,45 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _InformationCard extends StatelessWidget {
-  const _InformationCard();
+class _EmptyPatients extends StatelessWidget {
+  const _EmptyPatients({required this.message});
+
+  final String message;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(13, 12, 13, 11),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: const Color(0xFFD8E5E3)),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 24),
+      child: Center(
+        child: Text(
+          message,
+          style: TextStyle(color: Color(0xFF718383), fontSize: 13),
+        ),
       ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+}
+
+class _PatientLoadError extends StatelessWidget {
+  const _PatientLoadError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
         children: [
-          Padding(
-            padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.circle, size: 7, color: Color(0xFF2CA27A)),
+          const Text(
+            'Não foi possível carregar os pacientes.',
+            style: TextStyle(color: Color(0xFF718383), fontSize: 13),
           ),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'O painel usa dados cadastrais e histórico de risco\npara priorizar acompanhamento.',
-              style: TextStyle(
-                color: Color(0xFF718383),
-                fontSize: 11,
-                height: 1.35,
-              ),
+          TextButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Tentar novamente'),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF0D8279),
             ),
           ),
         ],
@@ -411,42 +436,24 @@ class _InformationCard extends StatelessWidget {
   }
 }
 
-class _EmptyPatients extends StatelessWidget {
-  const _EmptyPatients();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 24),
-      child: Center(
-        child: Text(
-          'Nenhum paciente encontrado',
-          style: TextStyle(color: Color(0xFF718383), fontSize: 13),
-        ),
-      ),
-    );
-  }
-}
-
-class _RiskBadge extends StatelessWidget {
-  const _RiskBadge({required this.label, required this.high});
+class _PatientBadge extends StatelessWidget {
+  const _PatientBadge({required this.label});
 
   final String label;
-  final bool high;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: high ? const Color(0xFFFFA52F) : const Color(0xFFD9F0ED),
+        color: const Color(0xFFD9F0ED),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: high ? const Color(0xFF263B3A) : const Color(0xFF0B7770),
-          fontSize: 10,
+        style: const TextStyle(
+          color: Color(0xFF0B7770),
+          fontSize: 9,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -494,21 +501,3 @@ class _NavItem extends StatelessWidget {
     );
   }
 }
-
-class _Patient {
-  const _Patient({
-    required this.name,
-    required this.age,
-    required this.gender,
-    required this.registeredAt,
-    required this.risk,
-  });
-
-  final String name;
-  final int age;
-  final String gender;
-  final String registeredAt;
-  final _RiskLevel risk;
-}
-
-enum _RiskLevel { high, low }
