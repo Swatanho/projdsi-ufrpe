@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../models/patient_model.dart';
-import '../../../core/services/patient_service.dart';
+import '../../../models/patient_model.dart';
+import '../../../services/patient_service.dart';
 
 class PatientRegisterScreen extends StatefulWidget {
   final String doctorId; // ID do médico autenticado
