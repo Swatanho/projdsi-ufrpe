@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:frontend/features/home/presentation/screens/doctor_register_screen.dart';
 import 'package:frontend/features/home/presentation/screens/login_screen.dart';
 import 'package:frontend/features/onboarding/presentation/screens/intro_flow_screen.dart';
 
@@ -22,6 +23,18 @@ void main() {
     expect(find.text('Cadastre-se'), findsOneWidget);
     expect(find.text('CRM'), findsOneWidget);
     expect(find.text('Senha'), findsOneWidget);
+  });
+
+  testWidgets('doctor registration returns to login', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
+
+    await tester.tap(find.text('Cadastre-se'));
+    await tester.pumpAndSettle();
+    expect(find.byType(DoctorRegisterScreen), findsOneWidget);
+
+    await tester.tap(find.text('Voltar para login'));
+    await tester.pumpAndSettle();
+    expect(find.text('Entrar'), findsOneWidget);
   });
 
   testWidgets('intro flow presents splash, onboarding and completes', (

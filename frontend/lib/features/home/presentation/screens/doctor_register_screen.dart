@@ -142,6 +142,16 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                TextButton.icon(
+                  onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF0E5B53),
+                    padding: EdgeInsets.zero,
+                  ),
+                  icon: const Icon(Icons.arrow_back, size: 18),
+                  label: const Text('Voltar para login'),
+                ),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: const [
