@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
-import 'features/home/presentation/screens/home_screen.dart';
+import 'services/auth_service.dart';
 import 'features/home/presentation/screens/login_screen.dart';
 import 'features/onboarding/presentation/screens/intro_flow_screen.dart';
+import 'views/home_screen.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -38,8 +38,8 @@ class _AppEntryState extends State<_AppEntry> {
       );
     }
 
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+    return StreamBuilder<bool>(
+      stream: AuthService.instance.isAuthenticated,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -47,7 +47,7 @@ class _AppEntryState extends State<_AppEntry> {
           );
         }
 
-        if (snapshot.hasData && snapshot.data != null) {
+        if (snapshot.data == true) {
           return const HomeScreen();
         }
 
