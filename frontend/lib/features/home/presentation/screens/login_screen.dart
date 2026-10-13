@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/services/auth_service.dart';
 import 'doctor_register_screen.dart';
 import 'forgot_password_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'home_screen.dart'; // Ajuste o caminho da pasta se não estiverem na mesma
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,33 +33,57 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.dispose();
     super.dispose();
   }
+Future<void> _handleLogin() async {
+  final crm = _crmController.text.trim();
+  final password = _passwordController.text;
 
-  Future<void> _handleLogin() async {
-    final crm = _crmController.text.trim();
-    final password = _passwordController.text;
+  if (!_crmRegExp.hasMatch(crm)) {
+    _showError('Informe um CRM válido (ex.: CRM-123456).');
+    return;
+  }
+  if (password.length < 6) {
+    _showError('A senha deve ter pelo menos 6 caracteres.');
+    return;
+  }
 
-    if (!_crmRegExp.hasMatch(crm)) {
-      _showError('Informe um CRM válido (ex.: CRM-123456).');
+  setState(() => _isLoading = true);
+  try {
+    final query = await FirebaseFirestore.instance
+        .collection('doctors')
+        .where('crm', isEqualTo: crm)
+        .get();
+
+    if (query.docs.isEmpty) {
+      _showError('Este CRM não está associado a nenhuma conta válida.');
       return;
     }
-    if (password.length < 6) {
-      _showError('A senha deve ter pelo menos 6 caracteres.');
+
+    final email = query.docs.first.data()['email'];
+    if (email == null) {
+      _showError('E-mail não encontrado para este CRM.');
       return;
     }
 
-    setState(() => _isLoading = true);
-    try {
-      // A navegação até a HomeScreen acontece automaticamente no `app.dart`,
-      // que observa as mudanças de sessão do Firebase Auth.
-      await AuthService.instance.signIn(crm: crm, password: password);
-    } on AuthException catch (e) {
-      _showError(e.message);
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    if (!mounted) return;
+   Navigator.of(context).pushReplacement(
+  MaterialPageRoute(builder: (_) => const HomeScreen()), // Use o nome exato da classe que está dentro do home_screen.dart
+);
+
+  } on FirebaseAuthException catch (e) {
+    _showError('Erro [${e.code}]: ${e.message}');
+  } catch (e) {
+    _showError('Erro inesperado: $e');
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
 
   void _openRegister() {
     Navigator.of(context).push(
