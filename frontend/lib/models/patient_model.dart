@@ -52,6 +52,40 @@ class PatientModel {
     );
   }
 
+  /// Cria uma cópia do modelo alterando apenas os campos informados.
+  ///
+  /// Usado na edição de pacientes, preservando `id`, `doctorId` e os demais
+  /// campos que não fazem parte do formulário de edição.
+  PatientModel copyWith({
+    String? id,
+    String? doctorId,
+    String? name,
+    int? age,
+    String? gender,
+    double? bmi,
+    bool? highBp,
+    bool? highChol,
+    bool? smoker,
+    bool? physActivity,
+    bool? stroke,
+    DateTime? createdAt,
+  }) {
+    return PatientModel(
+      id: id ?? this.id,
+      doctorId: doctorId ?? this.doctorId,
+      name: name ?? this.name,
+      age: age ?? this.age,
+      gender: gender ?? this.gender,
+      bmi: bmi ?? this.bmi,
+      highBp: highBp ?? this.highBp,
+      highChol: highChol ?? this.highChol,
+      smoker: smoker ?? this.smoker,
+      physActivity: physActivity ?? this.physActivity,
+      stroke: stroke ?? this.stroke,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
   Map<String, dynamic> toMap() => {
     'name': name,
     'age': age,
