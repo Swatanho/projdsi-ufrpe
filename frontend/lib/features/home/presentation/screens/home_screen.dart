@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:frontend/features/home/presentation/screens/patient_details_screen.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../features/patients/screens/patient_register_screen.dart';
 import 'prediction_screen.dart';
+import 'package:frontend/features/home/presentation/screens/doctor_profile_screen.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,6 +19,47 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedTab = 0;
+  
+  // Variáveis para guardar os dados do médico logado
+  String _doctorName = '';
+  bool _isLoadingDoctor = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDoctorDataFromFirestore();
+  }
+
+  // NOVA FUNÇÃO: Vai buscar o nome usando o email, que agora é imutável e seguro
+  Future<void> _loadDoctorDataFromFirestore() async {
+    try {
+      final email = FirebaseAuth.instance.currentUser?.email;
+      if (email == null) return;
+
+      final query = await FirebaseFirestore.instance
+          .collection('doctors')
+          .where('email', isEqualTo: email)
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            // Puxa o campo 'name' do Firestore (ex: "Caio Cesar")
+            _doctorName = query.docs.first.data()['name'] ?? '';
+            _isLoadingDoctor = false;
+          });
+        }
+      } else {
+         if (mounted) {
+          setState(() => _isLoadingDoctor = false);
+        }
+      }
+    } catch (e) {
+      debugPrint("Erro ao carregar dados do médico: $e");
+      if (mounted) setState(() => _isLoadingDoctor = false);
+    }
+  }
+  
   void _openPatientRegister() {
     final doctorId = FirebaseAuth.instance.currentUser?.uid ?? '';
     Navigator.of(context).push(
@@ -97,8 +142,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed == true) {
-      // O `app.dart` observa a sessão e volta para a tela de login
-      // automaticamente após o logout.
       await AuthService.instance.signOut();
     }
   }
@@ -121,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(),
+                    _buildHeader(), // O CABEÇALHO ATUALIZADO
                     const SizedBox(height: 20),
                     _buildSearchField(),
                     const SizedBox(height: 14),
@@ -166,6 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // CABEÇALHO CORRIGIDO: Usa a variável _doctorName que fomos buscar ao Firestore
   Widget _buildHeader() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -174,24 +218,20 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Saudação com o nome real do médico logado (Firestore).
-              StreamBuilder<DoctorProfile>(
-                stream: AuthService.instance.doctorProfileStream(),
-                builder: (context, snapshot) {
-                  final name = snapshot.data?.name;
-                  final greeting = (name == null || name.isEmpty)
-                      ? 'Olá, Dr(a).'
-                      : 'Olá, $name';
-                  return Text(
-                    greeting,
+              _isLoadingDoctor 
+                ? const SizedBox(
+                    height: 15, 
+                    width: 15, 
+                    child: CircularProgressIndicator(strokeWidth: 2)
+                  )
+                : Text(
+                    _doctorName.isEmpty ? 'Olá, Dr(a).' : 'Olá, $_doctorName',
                     style: const TextStyle(
                       color: Color(0xFF718383),
                       fontSize: 13,
                       fontWeight: FontWeight.w400,
                     ),
-                  );
-                },
-              ),
+                  ),
               const SizedBox(height: 4),
               const Text(
                 'Seus pacientes',
@@ -372,7 +412,16 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icons.person_outline,
             label: 'Perfil',
             selected: _selectedTab == 2,
-            onTap: () => setState(() => _selectedTab = 2),
+            onTap: () async {
+              // Navega para o perfil e atualiza a tela quando voltar
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DoctorProfileScreen(),
+                ),
+              );
+              _loadDoctorDataFromFirestore(); // Atualiza o nome após editar
+            },
           ),
         ],
       ),
