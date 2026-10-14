@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/services/health_service.dart';
+import '../../../../services/prediction_service.dart';
 
 class PredictionScreen extends StatefulWidget {
   const PredictionScreen({super.key, this.patientName, this.patientAge = 62});
@@ -13,7 +13,7 @@ class PredictionScreen extends StatefulWidget {
 }
 
 class _PredictionScreenState extends State<PredictionScreen> {
-  final HealthService _healthService = HealthService();
+  final PredictionService _predictionService = PredictionService();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   final TextEditingController _bmiController = TextEditingController(
@@ -46,6 +46,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
   @override
   void dispose() {
     _bmiController.dispose();
+    _predictionService.close();
     super.dispose();
   }
 
@@ -55,7 +56,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
     setState(() => _loading = true);
 
     try {
-      final response = await _healthService.predictHealth(
+      final response = await _predictionService.predictHealth(
         highBP: _highBP ? 1 : 0,
         highChol: _highChol ? 1 : 0,
         cholCheck: _cholCheck,

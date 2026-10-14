@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/services/auth_service.dart';
+import '../../../../services/auth_service.dart';
 import 'doctor_register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -86,9 +86,9 @@ Future<void> _handleLogin() async {
 }
 
   void _openRegister() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const DoctorRegisterScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const DoctorRegisterScreen()));
   }
 
   void _showError(String message) {
@@ -107,7 +107,10 @@ Future<void> _handleLogin() async {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 16.0,
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -179,17 +182,27 @@ Future<void> _handleLogin() async {
                         decoration: InputDecoration(
                           hintText: 'CRM-123456',
                           hintStyle: const TextStyle(color: Color(0xFF778C8B)),
-                          prefixIcon: const Icon(Icons.badge_outlined, color: Color(0xFF66807F)),
+                          prefixIcon: const Icon(
+                            Icons.badge_outlined,
+                            color: Color(0xFF66807F),
+                          ),
                           filled: true,
                           fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14.0,
+                          ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFD8E5E3)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFD8E5E3),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: primaryColor, width: 1.5),
+                            borderSide: const BorderSide(
+                              color: primaryColor,
+                              width: 1.5,
+                            ),
                           ),
                         ),
                       ),
@@ -208,17 +221,27 @@ Future<void> _handleLogin() async {
                         decoration: InputDecoration(
                           hintText: '••••••••',
                           hintStyle: const TextStyle(color: Color(0xFF778C8B)),
-                          prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF66807F)),
+                          prefixIcon: const Icon(
+                            Icons.lock_outline,
+                            color: Color(0xFF66807F),
+                          ),
                           filled: true,
                           fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14.0,
+                          ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFD8E5E3)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFD8E5E3),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: primaryColor, width: 1.5),
+                            borderSide: const BorderSide(
+                              color: primaryColor,
+                              width: 1.5,
+                            ),
                           ),
                         ),
                       ),
@@ -229,7 +252,8 @@ Future<void> _handleLogin() async {
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => const ForgotPasswordScreen()),
+                                builder: (_) => const ForgotPasswordScreen(),
+                              ),
                             );
                           },
                           style: TextButton.styleFrom(

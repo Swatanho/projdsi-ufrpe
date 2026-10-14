@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/services/auth_service.dart';
+import '../../../../services/doctor_service.dart';
 
 class DoctorRegisterScreen extends StatefulWidget {
   const DoctorRegisterScreen({super.key});
@@ -76,7 +76,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
 
       try {
         // Usa o teu AuthService oficial para criar a conta e guardar no Firestore
-        await AuthService.instance.signUp(
+        await DoctorService.instance.register(
           name: _nameController.text.trim(),
           crm: _crmController.text.trim(),
           password: _passwordController.text,
@@ -100,7 +100,10 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro inesperado: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Erro inesperado: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       } finally {
         if (mounted) setState(() => _isLoading = false);
@@ -142,6 +145,18 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                TextButton.icon(
+                  onPressed: _isLoading
+                      ? null
+                      : () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF0E5B53),
+                    padding: EdgeInsets.zero,
+                  ),
+                  icon: const Icon(Icons.arrow_back, size: 18),
+                  label: const Text('Voltar para login'),
+                ),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: const [
@@ -185,10 +200,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                 const SizedBox(height: 6),
                 const Text(
                   'Preencha seus dados profissionais para finalizar o registro.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF6B7280),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                 ),
                 const SizedBox(height: 28),
                 Form(
@@ -196,12 +208,22 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text('Nome completo', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827))),
+                      const Text(
+                        'Nome completo',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _nameController,
                         autovalidateMode: AutovalidateMode.onUserInteraction,
-                        decoration: _inputDecoration('Como podemos chamar você?', Icons.person_outline),
+                        decoration: _inputDecoration(
+                          'Como podemos chamar você?',
+                          Icons.person_outline,
+                        ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Informe seu nome.';
@@ -214,16 +236,29 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      const Text('CRM', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827))),
+                      const Text(
+                        'CRM',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _crmController,
-                        decoration: _inputDecoration('CRM-123456', Icons.badge_outlined),
+                        decoration: _inputDecoration(
+                          'CRM-123456',
+                          Icons.badge_outlined,
+                        ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Informe seu CRM.';
                           }
-                          final crmRegex = RegExp(r'^CRM-\d+$', caseSensitive: false);
+                          final crmRegex = RegExp(
+                            r'^CRM-\d+$',
+                            caseSensitive: false,
+                          );
                           if (!crmRegex.hasMatch(value.trim())) {
                             return 'Informe um CRM válido (ex.: CRM-123456).';
                           }
@@ -232,17 +267,37 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      const Text('E-mail', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827))),
+                      const Text(
+                        'E-mail',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: _inputDecoration('nome@hospital.com', Icons.mail_outline),
-                        validator: (value) => value == null || !value.contains('@') ? 'E-mail inválido.' : null,
+                        decoration: _inputDecoration(
+                          'nome@hospital.com',
+                          Icons.mail_outline,
+                        ),
+                        validator: (value) =>
+                            value == null || !value.contains('@')
+                            ? 'E-mail inválido.'
+                            : null,
                       ),
                       const SizedBox(height: 16),
 
-                      const Text('Senha', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827))),
+                      const Text(
+                        'Senha',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _passwordController,
@@ -250,27 +305,72 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                         onChanged: _calculatePasswordStrength,
                         decoration: InputDecoration(
                           hintText: 'Mínimo de 8 caracteres',
-                          prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF6B7280), size: 20),
+                          prefixIcon: const Icon(
+                            Icons.lock_outline,
+                            color: Color(0xFF6B7280),
+                            size: 20,
+                          ),
                           suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: const Color(0xFF6B7280)),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: const Color(0xFF6B7280),
+                            ),
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
                           ),
                           filled: true,
                           fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF0E5B53), width: 1.5)),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                            horizontal: 16,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF0E5B53),
+                              width: 1.5,
+                            ),
+                          ),
                         ),
-                        validator: (value) => value == null || value.length < 8 ? 'Mínimo de 8 caracteres.' : null,
+                        validator: (value) => value == null || value.length < 8
+                            ? 'Mínimo de 8 caracteres.'
+                            : null,
                       ),
                       const SizedBox(height: 6),
                       if (_passwordController.text.isNotEmpty) ...[
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Força da senha:', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-                            Text(_strengthLabel, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _getStrengthColor())),
+                            const Text(
+                              'Força da senha:',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                            Text(
+                              _strengthLabel,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _getStrengthColor(),
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -283,26 +383,66 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                       ],
                       const SizedBox(height: 16),
 
-                      const Text('Confirmar senha', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827))),
+                      const Text(
+                        'Confirmar senha',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _confirmPasswordController,
                         obscureText: _obscureConfirmPassword,
                         decoration: InputDecoration(
                           hintText: 'Repita sua senha',
-                          prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF6B7280), size: 20),
+                          prefixIcon: const Icon(
+                            Icons.lock_outline,
+                            color: Color(0xFF6B7280),
+                            size: 20,
+                          ),
                           suffixIcon: IconButton(
-                            icon: Icon(_obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: const Color(0xFF6B7280)),
-                            onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                            icon: Icon(
+                              _obscureConfirmPassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: const Color(0xFF6B7280),
+                            ),
+                            onPressed: () => setState(
+                              () => _obscureConfirmPassword =
+                                  !_obscureConfirmPassword,
+                            ),
                           ),
                           filled: true,
                           fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF0E5B53), width: 1.5)),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                            horizontal: 16,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF0E5B53),
+                              width: 1.5,
+                            ),
+                          ),
                         ),
-                        validator: (value) => value != _passwordController.text ? 'As senhas não coincidem.' : null,
+                        validator: (value) => value != _passwordController.text
+                            ? 'As senhas não coincidem.'
+                            : null,
                       ),
                       const SizedBox(height: 32),
 
@@ -313,15 +453,26 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                           backgroundColor: const Color(0xFF0E5B53),
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: _isLoading
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
                               )
-                            : const Text('Salvar Cadastro', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            : const Text(
+                                'Salvar Cadastro',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                       const SizedBox(height: 16), // Dá um pequeno espaço entre os botões
           
