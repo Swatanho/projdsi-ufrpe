@@ -1,4 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:frontend/features/home/presentation/screens/patient_details_screen.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../../features/patients/screens/patient_register_screen.dart';
+import 'prediction_screen.dart';
+import 'package:frontend/features/home/presentation/screens/doctor_profile_screen.dart';
+
 
 import '../../../../models/patient_model.dart';
 import '../../../../services/auth_service.dart';
@@ -79,8 +88,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed == true) {
-      // O `app.dart` observa a sessão e volta para a tela de login
-      // automaticamente após o logout.
       await AuthService.instance.signOut();
     }
   }
@@ -98,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(),
+                    _buildHeader(), // O CABEÇALHO ATUALIZADO
                     const SizedBox(height: 20),
                     _buildSearchField(),
                     const SizedBox(height: 14),
@@ -116,6 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // CABEÇALHO CORRIGIDO: Usa a variável _doctorName que fomos buscar ao Firestore
   Widget _buildHeader() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -139,9 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontSize: 13,
                       fontWeight: FontWeight.w400,
                     ),
-                  );
-                },
-              ),
+                  ),
               const SizedBox(height: 4),
               const Text(
                 'Todos os pacientes',
@@ -381,7 +387,16 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icons.person_outline,
             label: 'Perfil',
             selected: _selectedTab == 2,
-            onTap: () => setState(() => _selectedTab = 2),
+            onTap: () async {
+              // Navega para o perfil e atualiza a tela quando voltar
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DoctorProfileScreen(),
+                ),
+              );
+              _loadDoctorDataFromFirestore(); // Atualiza o nome após editar
+            },
           ),
         ],
       ),

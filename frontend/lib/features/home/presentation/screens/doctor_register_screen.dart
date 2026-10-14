@@ -474,6 +474,21 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                                 ),
                               ),
                       ),
+                      const SizedBox(height: 16), // Dá um pequeno espaço entre os botões
+          
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text(
+                          'Já tem uma conta? Voltar ao Login',
+                          style: TextStyle(
+                            color: Color(0xFF0D8279), // Usa o verde escuro do teu tema
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
