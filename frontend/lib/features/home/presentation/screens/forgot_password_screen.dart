@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/auth_service.dart';
+
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -8,24 +10,79 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _crmController = TextEditingController();
+  final _emailController = TextEditingController();
+  bool _isLoading = false;
 
-  // Cores alinhadas com o padrão do projeto
+  static final _emailRegExp = RegExp(
+    r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+  );
+
+  // cores do layout
   static const primaryColor = Color(0xFF0D8279);
   static const backgroundColor = Color(0xFFF4F8F7);
 
   @override
   void dispose() {
-    _crmController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
-  void _handleResetPassword() {
-    // Apenas feedback visual inicial (Frontend)
+  Future<void> _handleResetPassword() async {
+    final email = _emailController.text.trim();
+
+    if (!_emailRegExp.hasMatch(email)) {
+      _showMessage('Informe um e-mail válido para redefinir a senha.');
+      return;
+    }
+
+    final targetEmail = email;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirmar envio'),
+        content: Text(
+          'Enviar e-mail de redefinição para:\n\n$targetEmail',
+          style: const TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await AuthService.instance.resetPassword(email: email);
+      if (!mounted) return;
+      _showMessage(
+        'E-mail enviado para $targetEmail (se a conta existir).',
+        isError: false,
+      );
+      Navigator.of(context).pop();
+    } on AuthException catch (e) {
+      _showMessage(e.message);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showMessage(String message, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Solicitação de redefinição enviada!'),
-        backgroundColor: primaryColor,
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? const Color(0xFF263B3A) : primaryColor,
       ),
     );
   }
@@ -41,7 +98,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Ícone / Logo
+                // logo
                 Container(
                   width: 72,
                   height: 72,
@@ -57,7 +114,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Título e Subtítulo
+                // título e subtítulo
                 const Text(
                   'Redefinir Senha',
                   style: TextStyle(
@@ -68,7 +125,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Informe o CRM para o qual deseja redefinir\na sua senha',
+                  'Informe o e-mail cadastrado para receber\no link de redefinição de senha',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -78,7 +135,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 28),
 
-                // Card do Formulário
+                // card do formulário
                 Container(
                   padding: const EdgeInsets.all(20.0),
                   decoration: BoxDecoration(
@@ -87,7 +144,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     border: Border.all(color: const Color(0xFFD8E5E3)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
+                        color: Colors.black.withValues(alpha: 0.02),
                         blurRadius: 15,
                         offset: const Offset(0, 4),
                       ),
@@ -97,7 +154,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'CRM',
+                        'E-mail',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF173A3A),
@@ -105,11 +162,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                       const SizedBox(height: 8),
                       TextField(
-                        controller: _crmController,
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
-                          hintText: 'CRM-123456',
+                          hintText: 'seuemail@hospital.com',
                           hintStyle: const TextStyle(color: Color(0xFF718383)),
-                          prefixIcon: const Icon(Icons.badge_outlined, color: Color(0xFF718383)),
+                          prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF718383)),
                           filled: true,
                           fillColor: Colors.white,
                           contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
@@ -128,7 +186,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         width: double.infinity,
                         height: 46,
                         child: ElevatedButton(
-                          onPressed: _handleResetPassword,
+                          onPressed: _isLoading ? null : _handleResetPassword,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
                             foregroundColor: Colors.white,
@@ -137,13 +195,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            'Redefinir Senha',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Redefinir Senha',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
@@ -151,10 +218,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 36),
 
-                // Botão de Voltar ao Login
+                // botão para voltar ao login
                 GestureDetector(
                   onTap: () {
-                    // Retorna para a tela de Login (desempilha a rota atual)
+                    // volta para a tela de login
                     Navigator.of(context).pop();
                   },
                   child: const Text(
@@ -168,7 +235,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 40),
 
-                // Rodapé de Segurança
+                // rodapé de segurança
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
