@@ -75,7 +75,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
       setState(() => _isLoading = true);
 
       try {
-        // Usa o teu AuthService oficial para criar a conta e guardar no Firestore
+        // usa o auth service para criar a conta e salvar no firestore
         await AuthService.instance.signUp(
           name: _nameController.text.trim(),
           crm: _crmController.text.trim(),
