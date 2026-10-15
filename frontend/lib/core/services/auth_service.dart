@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
-/// Perfil do médico armazenado no Firestore (coleção `doctors/{uid}`).
+/// perfil do médico salvo no firestore
 class DoctorProfile {
   const DoctorProfile({
     required this.uid,
@@ -28,7 +29,7 @@ class DoctorProfile {
   }
 }
 
-/// Erro de autenticação com mensagem pronta para exibição ao usuário.
+/// erro de autenticação com mensagem pronta para o usuário
 class AuthException implements Exception {
   const AuthException(this.message);
 
@@ -38,67 +39,104 @@ class AuthException implements Exception {
   String toString() => message;
 }
 
-/// Serviço de autenticação com Firebase Auth + Firestore.
-///
-/// A tela de login trabalha com CRM, mas o Firebase Auth usa e-mail/senha.
-/// Para manter o design atual, o CRM é convertido internamente em um
-/// e-mail sintético (ex.: `CRM-123456` -> `crm123456@hearthealth.app`).
-/// Como o e-mail é único no Firebase Auth, isso também garante que
-/// cada CRM só possa ser cadastrado uma vez.
-///
-/// O e-mail real informado no cadastro é guardado no perfil do Firestore.
+/// serviço de autenticação com firebase auth e firestore
 class AuthService {
   AuthService._()
       : _auth = FirebaseAuth.instance,
         _firestore = FirebaseFirestore.instance;
 
-  static final AuthService instance = AuthService._();
+  AuthService.testable({FirebaseAuth? auth, FirebaseFirestore? firestore})
+      : _auth = auth ?? FirebaseAuth.instance,
+        _firestore = firestore;
+
+  static AuthService instance = AuthService._();
+
+  @visibleForTesting
+  static void overrideInstance(AuthService service) {
+    instance = service;
+  }
 
   final FirebaseAuth _auth;
-  final FirebaseFirestore _firestore;
+  final FirebaseFirestore? _firestore;
 
   static const String _doctorsCollection = 'doctors';
   static const String _emailDomain = 'hearthealth.app';
 
-  /// Usuário logado (null se ninguém estiver autenticado).
+  /// usuário autenticado, ou nulo quando não houver sessão
   User? get currentUser => _auth.currentUser;
 
-  /// Stream que emite a cada mudança de sessão (login/logout).
+  /// resolve o email do auth para um crm
+  Future<String> resolveAuthEmailForCrm(String crm) async {
+    final firestore = _firestore;
+    final sessionEmail = _auth.currentUser?.email?.trim();
+    if (sessionEmail != null && sessionEmail.contains('@')) {
+      return sessionEmail;
+    }
+
+    if (firestore != null) {
+      try {
+        final snapshot = await firestore.collection(_doctorsCollection).get();
+
+        for (final doc in snapshot.docs) {
+          final data = doc.data();
+          final storedCrm = (data['crm'] as String? ?? '').trim();
+          if (normalizeCrm(storedCrm) != normalizeCrm(crm)) continue;
+
+          final email = (data['email'] as String? ?? '').trim();
+          if (email.contains('@')) {
+            return email;
+          }
+        }
+      } catch (_) {
+        // fallback para o email legado quando a leitura falha
+      }
+    }
+
+    return crmToEmail(crm);
+  }
+
+  /// stream de mudanças de sessão
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  /// Normaliza o CRM (minúsculo, apenas letras e números).
-  ///
-  /// `CRM-123456`, `crm 123456` e `crm123456` viram `crm123456`.
+  /// normaliza o crm para o formato usado na aplicação
   static String normalizeCrm(String crm) =>
       crm.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
 
-  /// Converte o CRM em e-mail sintético usado no Firebase Auth.
+  /// converte o crm em um email sintético legado
   String crmToEmail(String crm) => '${normalizeCrm(crm)}@$_emailDomain';
 
-  /// Stream do perfil do médico logado (documento `doctors/{uid}`).
+  /// stream do perfil do médico logado
   Stream<DoctorProfile> doctorProfileStream() {
     final user = currentUser;
-    if (user == null) return const Stream.empty();
-    return _firestore
+    final firestore = _firestore;
+    if (user == null || firestore == null) return const Stream.empty();
+    return firestore
         .collection(_doctorsCollection)
         .doc(user.uid)
         .snapshots()
         .map(DoctorProfile.fromFirestore);
   }
 
-  /// Cria a conta (Firebase Auth) e o perfil do médico (Firestore).
-  ///
-  /// [email] é o e-mail real informado na tela de cadastro, guardado no
-  /// perfil; a autenticação em si usa o e-mail sintético derivado do CRM.
+  /// cria a conta e salva o perfil do médico
   Future<void> signUp({
     required String name,
     required String crm,
     required String password,
     String? email,
   }) async {
+    final firestore = _firestore;
+    if (firestore == null) {
+      throw const AuthException('Firebase Firestore indisponível no momento.');
+    }
+
+    final realEmail = email?.trim() ?? '';
+    if (!realEmail.contains('@')) {
+      throw const AuthException('Informe um e-mail válido para continuar.');
+    }
+
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
-        email: crmToEmail(crm),
+        email: realEmail,
         password: password,
       );
 
@@ -109,10 +147,10 @@ class AuthService {
         );
       }
 
-      await _firestore.collection(_doctorsCollection).doc(user.uid).set({
+      await firestore.collection(_doctorsCollection).doc(user.uid).set({
         'name': name.trim(),
         'crm': normalizeCrm(crm).toUpperCase(),
-        'email': email?.trim().isNotEmpty == true ? email!.trim() : user.email,
+        'email': realEmail,
         'createdAt': FieldValue.serverTimestamp(),
       });
     } on FirebaseAuthException catch (e) {
@@ -122,11 +160,18 @@ class AuthService {
     }
   }
 
-  /// Autentica com CRM + senha.
-  Future<void> signIn({required String crm, required String password}) async {
+  /// autentica com crm ou email e senha
+  Future<void> signIn({String? crm, String? email, required String password}) async {
+    final normalizedEmail = (email ?? '').trim();
+    final normalizedCrm = (crm ?? '').trim();
+
     try {
+      final authEmail = normalizedEmail.isNotEmpty && normalizedEmail.contains('@')
+          ? normalizedEmail
+          : await resolveAuthEmailForCrm(normalizedCrm);
+
       await _auth.signInWithEmailAndPassword(
-        email: crmToEmail(crm),
+        email: authEmail,
         password: password,
       );
     } on FirebaseAuthException catch (e) {
@@ -134,10 +179,30 @@ class AuthService {
     }
   }
 
-  /// Encerra a sessão atual.
+  /// envia o email de recuperação de senha
+  Future<void> resetPassword({String? crm, String? email}) async {
+    final targetEmail = (email ?? '').trim();
+    final resolvedEmail = targetEmail.isNotEmpty
+        ? targetEmail
+        : crm != null
+            ? await resolveAuthEmailForCrm(crm)
+            : '';
+
+    if (resolvedEmail.isEmpty || !resolvedEmail.contains('@')) {
+      throw const AuthException('Informe um e-mail válido para redefinir a senha.');
+    }
+
+    try {
+      await _auth.sendPasswordResetEmail(email: resolvedEmail);
+    } on FirebaseAuthException catch (e) {
+      throw AuthException(_messageFor(e));
+    }
+  }
+
+  /// encerra a sessão atual
   Future<void> signOut() => _auth.signOut();
 
-  /// Traduz os códigos do Firebase Auth para mensagens amigáveis.
+  /// converte erros do firebase em mensagens amigáveis
   String _messageFor(FirebaseAuthException e) {
     switch (e.code) {
       case 'invalid-credential':
