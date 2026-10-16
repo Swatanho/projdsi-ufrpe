@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../models/patient_model.dart';
+import '../../../../services/auth_service.dart';
+import '../../../../features/patients/screens/patient_register_screen.dart';
 import 'prediction_screen.dart';
 
 class PatientDetailsScreen extends StatelessWidget {
@@ -14,6 +16,24 @@ class PatientDetailsScreen extends StatelessWidget {
         builder: (_) => PredictionScreen(
           patientName: patient.name,
           patientAge: patient.age,
+        ),
+      ),
+    );
+  }
+
+  /// Restrição de posse: apenas o médico dono do cadastro pode editá-lo.
+  /// As regras do Firestore aplicam a mesma restrição no servidor; esta
+  /// checagem apenas esconde a ação de quem não é o dono.
+  bool get _isOwner =>
+      patient.doctorId != null &&
+      patient.doctorId == AuthService.instance.currentUserId;
+
+  void _openPatientEdit(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PatientRegisterScreen(
+          doctorId: patient.doctorId!,
+          patientToEdit: patient,
         ),
       ),
     );
@@ -43,7 +63,9 @@ class PatientDetailsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 38),
+                  _isOwner
+                      ? _EditButton(onPressed: () => _openPatientEdit(context))
+                      : const SizedBox(width: 38),
                 ],
               ),
             ),
@@ -223,6 +245,35 @@ class _BackButton extends StatelessWidget {
         tooltip: 'Voltar',
         onPressed: onPressed,
         icon: const Icon(Icons.arrow_back, size: 19, color: Color(0xFF087A72)),
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(11),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditButton extends StatelessWidget {
+  const _EditButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 38,
+      height: 38,
+      child: IconButton(
+        tooltip: 'Editar paciente',
+        onPressed: onPressed,
+        icon: const Icon(
+          Icons.edit_outlined,
+          size: 19,
+          color: Color(0xFF087A72),
+        ),
         style: IconButton.styleFrom(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
