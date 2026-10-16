@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:frontend/features/home/presentation/screens/patient_details_screen.dart';
 import '../../../../core/services/auth_service.dart';
-import 'patient_details_screen.dart';
-import 'prediction_screen.dart';
+import '../../../../features/patients/screens/patient_register_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,6 +14,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedTab = 0;
+  void _openPatientRegister() {
+    final doctorId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PatientRegisterScreen(doctorId: doctorId),
+      ),
+    );
+  }
 
   final List<_Patient> _patients = const [
     _Patient(
@@ -43,12 +51,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _openPrediction() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const PredictionScreen()));
   }
 
   void _openPatientDetails(_Patient patient) {
@@ -88,8 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed == true) {
-      // O `app.dart` observa a sessão e volta para a tela de login
-      // automaticamente após o logout.
+      // o app volta para a tela de login após o logout
       await AuthService.instance.signOut();
     }
   }
@@ -165,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Saudação com o nome real do médico logado (Firestore).
+              // saudação com o nome do médico logado
               StreamBuilder<DoctorProfile>(
                 stream: AuthService.instance.doctorProfileStream(),
                 builder: (context, snapshot) {
@@ -243,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
       width: double.infinity,
       height: 41,
       child: ElevatedButton.icon(
-        onPressed: _openPrediction,
+        onPressed: _openPatientRegister,
         icon: const Icon(Icons.add, size: 20),
         label: const Text('Novo Paciente'),
         style: ElevatedButton.styleFrom(
