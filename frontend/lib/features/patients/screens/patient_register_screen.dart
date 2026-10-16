@@ -5,8 +5,13 @@ import '../../../services/patient_service.dart';
 
 class PatientRegisterScreen extends StatefulWidget {
   final String doctorId; // ID do médico autenticado
+  final PatientModel? patientToEdit; // Presente => modo de edição.
 
-  const PatientRegisterScreen({super.key, required this.doctorId});
+  const PatientRegisterScreen({
+    super.key,
+    required this.doctorId,
+    this.patientToEdit,
+  });
 
   @override
   State<PatientRegisterScreen> createState() => _PatientRegisterScreenState();
@@ -35,6 +40,29 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
   bool _isLoading = false;
   final PatientService _patientService = PatientService();
 
+  bool get _isEditing => widget.patientToEdit != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final patient = widget.patientToEdit;
+    if (patient == null) return;
+
+    _nameController.text = patient.name;
+    _selectedGender = const ['Masculino', 'Feminino', 'Outro'].contains(
+      patient.gender,
+    )
+        ? patient.gender
+        : 'Masculino';
+    _age = patient.age.clamp(0, 120).toDouble();
+    _bmi = patient.bmi.clamp(10, 50).toDouble();
+    _highBp = patient.highBp;
+    _highChol = patient.highChol;
+    _smoker = patient.smoker;
+    _physActivity = patient.physActivity;
+    _stroke = patient.stroke;
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -46,26 +74,44 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
       setState(() => _isLoading = true);
 
       try {
-        final newPatient = PatientModel(
-          doctorId: widget.doctorId,
-          name: _nameController.text.trim(),
-          age: _age.toInt(),
-          gender: _selectedGender,
-          bmi: double.parse(_bmi.toStringAsFixed(1)),
-          highBp: _highBp,
-          highChol: _highChol,
-          smoker: _smoker,
-          physActivity: _physActivity,
-          stroke: _stroke,
-          createdAt: DateTime.now(),
-        );
-
-        await _patientService.addPatient(widget.doctorId, newPatient);
+        if (_isEditing) {
+          final updatedPatient = widget.patientToEdit!.copyWith(
+            name: _nameController.text.trim(),
+            age: _age.toInt(),
+            gender: _selectedGender,
+            bmi: double.parse(_bmi.toStringAsFixed(1)),
+            highBp: _highBp,
+            highChol: _highChol,
+            smoker: _smoker,
+            physActivity: _physActivity,
+            stroke: _stroke,
+          );
+          await _patientService.updatePatient(updatedPatient);
+        } else {
+          final newPatient = PatientModel(
+            doctorId: widget.doctorId,
+            name: _nameController.text.trim(),
+            age: _age.toInt(),
+            gender: _selectedGender,
+            bmi: double.parse(_bmi.toStringAsFixed(1)),
+            highBp: _highBp,
+            highChol: _highChol,
+            smoker: _smoker,
+            physActivity: _physActivity,
+            stroke: _stroke,
+            createdAt: DateTime.now(),
+          );
+          await _patientService.addPatient(widget.doctorId, newPatient);
+        }
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Paciente cadastrado com sucesso!'),
+          SnackBar(
+            content: Text(
+              _isEditing
+                  ? 'Paciente atualizado com sucesso!'
+                  : 'Paciente cadastrado com sucesso!',
+            ),
             backgroundColor: _primary,
           ),
         );
@@ -74,7 +120,9 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao cadastrar: $e'),
+            content: Text(
+              _isEditing ? 'Erro ao atualizar: $e' : 'Erro ao cadastrar: $e',
+            ),
             backgroundColor: const Color(0xFFB83F46),
           ),
         );
@@ -226,11 +274,11 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                     icon: const Icon(Icons.arrow_back),
                     color: _muted,
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Center(
                       child: Text(
-                        'Novo paciente',
-                        style: TextStyle(
+                        _isEditing ? 'Editar paciente' : 'Novo paciente',
+                        style: const TextStyle(
                           color: _heading,
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
@@ -372,9 +420,18 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Icon(Icons.person_add_alt_1, size: 18),
+                              : Icon(
+                                  _isEditing
+                                      ? Icons.save_outlined
+                                      : Icons.person_add_alt_1,
+                                  size: 18,
+                                ),
                           label: Text(
-                            _isLoading ? 'Salvando...' : 'Salvar paciente',
+                            _isLoading
+                                ? 'Salvando...'
+                                : _isEditing
+                                ? 'Salvar alterações'
+                                : 'Salvar paciente',
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _primary,
