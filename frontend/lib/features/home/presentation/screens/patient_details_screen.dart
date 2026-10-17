@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../models/patient_model.dart';
 import '../../../../services/auth_service.dart';
+import '../../../../services/patient_service.dart';
 import '../../../../features/patients/screens/patient_register_screen.dart';
 import 'prediction_screen.dart';
 
@@ -37,6 +38,68 @@ class PatientDetailsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// A exclusão exige confirmação explícita; após remover, a tela volta
+  /// para a lista, que reage ao stream do Firestore e atualiza sozinha.
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir paciente'),
+        content: Text(
+          'Deseja realmente excluir o cadastro de ${patient.name}? '
+          'Esta ação não pode ser desfeita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFB83F46),
+            ),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final id = patient.id;
+    if (id == null) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível excluir este paciente.'),
+          backgroundColor: Color(0xFFB83F46),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await PatientService().deletePatient(id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Paciente excluído com sucesso.'),
+          backgroundColor: Color(0xFF0D8279),
+        ),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao excluir: $e'),
+          backgroundColor: const Color(0xFFB83F46),
+        ),
+      );
+    }
   }
 
   @override
@@ -130,6 +193,31 @@ class PatientDetailsScreen extends StatelessWidget {
                 ),
               ),
             ),
+            if (_isOwner)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: TextButton.icon(
+                    onPressed: () => _confirmDelete(context),
+                    icon: const Icon(Icons.delete_outline, size: 19),
+                    label: const Text('Excluir paciente'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFB83F46),
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFFD8E5E3)),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
