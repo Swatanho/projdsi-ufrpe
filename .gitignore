@@ -20,6 +20,19 @@ frontend/.flutter-plugins
 frontend/.flutter-plugins-dependencies
 frontend/pubspec.lock
 
+# Flutter — registrants de plugin regenerados por flutter test / pub get
+frontend/linux/flutter/generated_plugin_registrant.cc
+frontend/linux/flutter/generated_plugin_registrant.h
+frontend/linux/flutter/generated_plugins.cmake
+frontend/macos/Flutter/GeneratedPluginRegistrant.swift
+frontend/windows/flutter/generated_plugin_registrant.cc
+frontend/windows/flutter/generated_plugin_registrant.h
+frontend/windows/flutter/generated_plugins.cmake
+
+# Firebase
+firebase-debug.log
+firebase-debug.log.*
+
 # Ambiente
 .env
 .env.*
