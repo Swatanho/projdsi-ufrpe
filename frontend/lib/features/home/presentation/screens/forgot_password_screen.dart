@@ -37,7 +37,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 16.0,
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -87,7 +90,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     border: Border.all(color: const Color(0xFFD8E5E3)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
+                        color: Colors.black.withValues(alpha: 0.02),
                         blurRadius: 15,
                         offset: const Offset(0, 4),
                       ),
@@ -109,17 +112,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         decoration: InputDecoration(
                           hintText: 'CRM-123456',
                           hintStyle: const TextStyle(color: Color(0xFF718383)),
-                          prefixIcon: const Icon(Icons.badge_outlined, color: Color(0xFF718383)),
+                          prefixIcon: const Icon(
+                            Icons.badge_outlined,
+                            color: Color(0xFF718383),
+                          ),
                           filled: true,
                           fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14.0,
+                          ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFD8E5E3)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFD8E5E3),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: primaryColor, width: 1.5),
+                            borderSide: const BorderSide(
+                              color: primaryColor,
+                              width: 1.5,
+                            ),
                           ),
                         ),
                       ),
