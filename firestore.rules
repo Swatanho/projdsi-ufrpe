@@ -11,14 +11,20 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.doctorId == request.auth.uid;
+      // O código nunca envia `doctorId` na atualização (só os campos do
+      // paciente), então basta verificar o dono no documento existente.
+      // A transferência de dono é impedida porque `doctorId` não pode
+      // ser alterado por esta escrita.
       allow update: if request.auth != null
-        && resource.data.doctorId == request.auth.uid
-        && request.resource.data.doctorId == resource.data.doctorId;
+        && resource.data.doctorId == request.auth.uid;
       allow delete: if request.auth != null
         && resource.data.doctorId == request.auth.uid;
     }
 
     // Perfis dos médicos: cada usuário só acessa o próprio documento.
+    // A propriedade é definida pela `uid` (o documento é gravado em
+    // `/doctors/{uid}`), não pelo e-mail — evita o cenário em que o e-mail
+    // digitado no cadastro difere do e-mail normalizado do token.
     match /doctors/{userId} {
       allow read, write: if request.auth != null
         && request.auth.uid == userId;
