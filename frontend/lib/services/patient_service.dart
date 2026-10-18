@@ -11,6 +11,14 @@ class PatientService {
     return _firestoreRepository.addPatient(doctorId, patient);
   }
 
+  Future<void> updatePatient(PatientModel patient) {
+    return _firestoreRepository.updatePatient(patient);
+  }
+
+  Future<void> deletePatient(String id) {
+    return _firestoreRepository.deletePatient(id);
+  }
+
   Stream<List<PatientModel>> watchAllPatients() {
     return _firestoreRepository.watchAllPatients();
   }

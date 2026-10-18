@@ -66,6 +66,36 @@ class FirestoreRepository {
       return patients;
     });
   }
+
+  /// Atualiza os dados de um paciente cadastrado pelo médico dono.
+  ///
+  /// `doctorId` é intencionalmente ignorado: as regras de segurança do
+  /// Firestore impedem a transferência de propriedade do paciente.
+  Future<void> updatePatient(PatientModel patient) async {
+    final id = patient.id;
+    if (id == null || id.isEmpty) {
+      throw const FirestoreRepositoryException(
+        'Não é possível atualizar um paciente sem id.',
+      );
+    }
+
+    try {
+      await _firestore.collection(_patientsCollection).doc(id).update(
+        patient.toMap(),
+      );
+    } on FirebaseException catch (error) {
+      throw FirestoreRepositoryException(error.message ?? error.code);
+    }
+  }
+
+  /// Remove permanentemente o cadastro de um paciente.
+  Future<void> deletePatient(String id) async {
+    try {
+      await _firestore.collection(_patientsCollection).doc(id).delete();
+    } on FirebaseException catch (error) {
+      throw FirestoreRepositoryException(error.message ?? error.code);
+    }
+  }
 }
 
 class FirestoreRepositoryException implements Exception {

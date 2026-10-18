@@ -76,6 +76,38 @@ void main() {
     );
   });
 
+  test('PatientModel copyWith only overrides the informed fields', () {
+    final patient = PatientModel(
+      id: 'patient-1',
+      doctorId: 'doctor-1',
+      name: 'Carlos Mendes',
+      age: 58,
+      gender: 'Masculino',
+      bmi: 24.5,
+      highBp: true,
+      highChol: false,
+      smoker: false,
+      physActivity: true,
+      stroke: false,
+      createdAt: DateTime.utc(2026, 10, 12),
+    );
+
+    final updated = patient.copyWith(name: 'Carlos M. Souza', bmi: 26.2);
+
+    expect(updated.id, 'patient-1');
+    expect(updated.doctorId, 'doctor-1');
+    expect(updated.name, 'Carlos M. Souza');
+    expect(updated.bmi, 26.2);
+    expect(updated.age, 58);
+    expect(updated.gender, 'Masculino');
+    expect(updated.highBp, isTrue);
+    expect(updated.highChol, isFalse);
+    expect(updated.smoker, isFalse);
+    expect(updated.physActivity, isTrue);
+    expect(updated.stroke, isFalse);
+    expect(updated.createdAt, patient.createdAt);
+  });
+
   test('PredictionModel parses the API response', () {
     final prediction = PredictionModel.fromJson({
       'prediction': 1,
