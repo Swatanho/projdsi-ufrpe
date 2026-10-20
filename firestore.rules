@@ -19,6 +19,32 @@ service cloud.firestore {
         && resource.data.doctorId == request.auth.uid;
       allow delete: if request.auth != null
         && resource.data.doctorId == request.auth.uid;
+
+      match /risk_assessments/{assessmentId} {
+        allow read: if request.auth != null
+          && get(/databases/$(database)/documents/patients/$(patientId))
+            .data.doctorId == request.auth.uid;
+        allow create: if request.auth != null
+          && get(/databases/$(database)/documents/patients/$(patientId))
+            .data.doctorId == request.auth.uid
+          && request.resource.data.keys().hasOnly([
+            'prediction',
+            'riskPercentage',
+            'modelName',
+            'message',
+            'createdAt'
+          ])
+          && request.resource.data.prediction in [0, 1]
+          && request.resource.data.riskPercentage is number
+          && request.resource.data.riskPercentage >= 0
+          && request.resource.data.riskPercentage <= 100
+          && request.resource.data.modelName in [
+            'logistic_regression',
+            'xgboost'
+          ]
+          && request.resource.data.message is string
+          && request.resource.data.createdAt == request.time;
+      }
     }
 
     // Perfis dos médicos: cada usuário só acessa o próprio documento.

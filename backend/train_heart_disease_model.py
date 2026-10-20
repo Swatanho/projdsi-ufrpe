@@ -7,6 +7,10 @@ import joblib
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from xgboost import XGBClassifier
 
 TARGET_COLUMN = 'HeartDiseaseorAttack'
 FEATURE_COLUMNS = [
@@ -34,7 +38,8 @@ FEATURE_COLUMNS = [
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BACKEND_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BACKEND_DIR / 'heart_disease_model.pkl'
+LOGISTIC_MODEL_PATH = BACKEND_DIR / 'heart_disease_model_logistic_regression.pkl'
+XGBOOST_MODEL_PATH = BACKEND_DIR / 'heart_disease_model_xgboost.pkl'
 ZIP_PATH_CANDIDATES = [
     PROJECT_ROOT / 'archive.zip',
     BACKEND_DIR / 'archive.zip',
@@ -81,15 +86,45 @@ def train_model_from_archive() -> None:
     X = model_df[FEATURE_COLUMNS]
     y = model_df[TARGET_COLUMN].astype(int)
 
-    model = LogisticRegression(max_iter=2000, random_state=42)
-    model.fit(X, y)
+    x_train, x_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y,
+    )
+    models = {
+        'Regressão Logística': (
+            Pipeline([
+                ('scaler', StandardScaler()),
+                (
+                    'classifier',
+                    LogisticRegression(max_iter=2000, random_state=42),
+                ),
+            ]),
+            LOGISTIC_MODEL_PATH,
+        ),
+        'XGBoost': (
+            XGBClassifier(
+                n_estimators=300,
+                max_depth=4,
+                learning_rate=0.05,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                eval_metric='logloss',
+                random_state=42,
+                n_jobs=-1,
+            ),
+            XGBOOST_MODEL_PATH,
+        ),
+    }
 
-    predictions = model.predict(X)
-    accuracy = accuracy_score(y, predictions)
-
-    joblib.dump(model, MODEL_PATH)
-    print(f'Modelo salvo em: {MODEL_PATH}')
-    print(f'Acurácia no conjunto de treino: {accuracy:.4f}')
+    for label, (model, model_path) in models.items():
+        model.fit(x_train, y_train)
+        accuracy = accuracy_score(y_test, model.predict(x_test))
+        joblib.dump(model, model_path)
+        print(f'{label} salvo em: {model_path}')
+        print(f'Acurácia no conjunto de teste: {accuracy:.4f}')
 
 
 if __name__ == '__main__':

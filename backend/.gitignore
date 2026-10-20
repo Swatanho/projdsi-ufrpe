@@ -8,4 +8,6 @@ venv/
 .pyc
 *.pkl
 !heart_disease_model.pkl
+!heart_disease_model_logistic_regression.pkl
+!heart_disease_model_xgboost.pkl
 *.db

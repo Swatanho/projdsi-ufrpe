@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import pandas as pd
@@ -39,8 +39,16 @@ FEATURE_COLUMNS = [
     'Income',
 ]
 
-model_path = Path(__file__).resolve().with_name('heart_disease_model.pkl')
-model = joblib.load(model_path)
+BACKEND_DIR = Path(__file__).resolve().parent
+MODEL_PATHS = {
+    'logistic_regression': BACKEND_DIR / 'heart_disease_model_logistic_regression.pkl',
+    'xgboost': BACKEND_DIR / 'heart_disease_model_xgboost.pkl',
+}
+MODEL_LABELS = {
+    'logistic_regression': 'Regressão Logística',
+    'xgboost': 'XGBoost',
+}
+models = {name: joblib.load(path) for name, path in MODEL_PATHS.items()}
 
 class HeartDiseaseInput(BaseModel):
     HighBP: int
@@ -68,11 +76,56 @@ class HeartDiseaseInput(BaseModel):
 def root():
     return {'message': 'API Heart Health online'}
 
+
+@app.get('/models')
+def list_models():
+    available_models = []
+    for model_name, estimator in models.items():
+        if model_name == 'logistic_regression':
+            raw_importances = abs(
+                estimator.named_steps['classifier'].coef_[0],
+            )
+        else:
+            raw_importances = estimator.feature_importances_
+
+        total_importance = float(raw_importances.sum())
+        importances = [
+            {
+                'feature': feature,
+                'importance': float(value / total_importance)
+                if total_importance
+                else 0.0,
+            }
+            for feature, value in zip(FEATURE_COLUMNS, raw_importances)
+        ]
+        importances.sort(key=lambda item: item['importance'], reverse=True)
+        available_models.append({
+            'id': model_name,
+            'label': MODEL_LABELS[model_name],
+            'feature_importances': importances,
+        })
+
+    return {'models': available_models}
+
+
 @app.post('/predict')
-def predict(data: HeartDiseaseInput):
+def predict(data: HeartDiseaseInput, model_name: str = 'logistic_regression'):
+    estimator = models.get(model_name)
+    if estimator is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f'Modelo inválido. Opções: {", ".join(MODEL_LABELS)}',
+        )
+
     payload = pd.DataFrame([data.model_dump()], columns=FEATURE_COLUMNS)
-    prediction = model.predict(payload)[0]
+    prediction = estimator.predict(payload)[0]
+    positive_class_index = list(estimator.classes_).index(1)
+    risk_percentage = float(
+        estimator.predict_proba(payload)[0][positive_class_index] * 100,
+    )
     return {
         'prediction': int(prediction),
+        'risk_percentage': risk_percentage,
+        'model_name': model_name,
         'message': 'Risco de doença cardíaca detectado' if prediction == 1 else 'Sem indicação de doença cardíaca',
     }

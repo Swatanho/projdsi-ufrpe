@@ -115,4 +115,22 @@ void main() {
     await tester.tap(find.text('Começar'));
     expect(completed, isTrue);
   });
+
+  testWidgets('skipping onboarding completes without showing the last page', (
+    tester,
+  ) async {
+    var completed = false;
+    await tester.pumpWidget(
+      MaterialApp(home: IntroFlowScreen(onCompleted: () => completed = true)),
+    );
+    await tester.pump(const Duration(milliseconds: 1400));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Pular'));
+    await tester.pumpAndSettle();
+
+    expect(completed, isTrue);
+    expect(find.text('Cadastre seus Pacientes'), findsOneWidget);
+    expect(find.text('Agende Consultas'), findsNothing);
+  });
 }
