@@ -96,6 +96,35 @@ class FirestoreRepository {
       throw FirestoreRepositoryException(error.message ?? error.code);
     }
   }
+
+  /// Retorna o e-mail real cadastrado no perfil do médico com o CRM
+  /// informado, ou `null` quando não encontrado.
+  ///
+  /// A comparação ignora formatação: "CRM-123456" e "crm123456" são
+  /// equivalentes. Quando a leitura falha, retorna `null` para que o
+  /// `AuthService` aplique o fallback para o e-mail sintético do CRM.
+  Future<String?> doctorEmailForCrm(String crm) async {
+    final normalized = _normalizeCrm(crm);
+    if (normalized.isEmpty) return null;
+
+    try {
+      final snapshot = await _firestore.collection(_doctorsCollection).get();
+      for (final document in snapshot.docs) {
+        final data = document.data();
+        final storedCrm = _normalizeCrm((data['crm'] as String?) ?? '');
+        if (storedCrm != normalized) continue;
+
+        final email = ((data['email'] as String?) ?? '').trim();
+        if (email.contains('@')) return email;
+      }
+    } on FirebaseException {
+      // mantém o fallback para o e-mail sintético do CRM no AuthService
+    }
+    return null;
+  }
+
+  static String _normalizeCrm(String crm) =>
+      crm.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
 }
 
 class FirestoreRepositoryException implements Exception {

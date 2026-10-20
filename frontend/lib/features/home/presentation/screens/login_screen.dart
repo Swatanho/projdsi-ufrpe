@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../services/auth_service.dart';
 import 'doctor_register_screen.dart';
 import 'forgot_password_screen.dart';
-import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,10 +17,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
 
-  // Formato aceito: CRM-123456
+  // aceita crm ou email real
   static final _crmRegExp = RegExp(r'^crm-?\d{4,8}$', caseSensitive: false);
+  static final _emailRegExp = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
-  // Cores de acordo com o design
+  // cores do layout
   static const primaryColor = Color(0xFF0D8279);
   static const backgroundColor = Color(0xFFF4F8F7);
 
@@ -33,11 +33,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    final crm = _crmController.text.trim();
+    final rawLogin = _crmController.text.trim();
     final password = _passwordController.text;
 
-    if (!_crmRegExp.hasMatch(crm)) {
-      _showError('Informe um CRM válido (ex.: CRM-123456).');
+    final isEmail = _emailRegExp.hasMatch(rawLogin);
+    final isCrm = _crmRegExp.hasMatch(rawLogin);
+
+    if (!isEmail && !isCrm) {
+      _showError('Informe um CRM ou e-mail válido.');
       return;
     }
     if (password.length < 6) {
@@ -47,16 +50,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await AuthService.instance.signIn(crm: crm, password: password);
-
-      if (!mounted) return;
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
-    } on AuthException catch (error) {
-      _showError(error.message);
-    } catch (error) {
-      _showError('Erro inesperado ao entrar: $error');
+      // a navegação para a home é controlada pelo app após a autenticação
+      await AuthService.instance.signIn(
+        crm: isCrm ? rawLogin : null,
+        email: isEmail ? rawLogin : null,
+        password: password,
+      );
+    } on AuthException catch (e) {
+      _showError(e.message);
+    } catch (e) {
+      _showError('Erro inesperado ao entrar: $e');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -93,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Icone / Logo
+                // logo
                 Container(
                   width: 72,
                   height: 72,
@@ -109,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Título e Subtítulo
+                // título e subtítulo
                 const Text(
                   'HeartHealth',
                   style: TextStyle(
@@ -130,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 28),
 
-                // Card do Formulário
+                // card do formulário
                 Container(
                   padding: const EdgeInsets.all(20.0),
                   decoration: BoxDecoration(
@@ -149,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'CRM',
+                        'CRM ou e-mail',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF173A3A),
@@ -158,8 +161,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 8),
                       TextField(
                         controller: _crmController,
+                        keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
-                          hintText: 'CRM-123456',
+                          hintText: 'CRM-123456 ou seuemail@hospital.com',
                           hintStyle: const TextStyle(color: Color(0xFF778C8B)),
                           prefixIcon: const Icon(
                             Icons.badge_outlined,
@@ -281,7 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Link para Cadastro
+                // link para cadastro
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -303,7 +307,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Mensagem no Rodapé
+                // mensagem de rodapé
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
