@@ -24,7 +24,7 @@ void main() {
     expect(find.text('HeartHealth'), findsOneWidget);
     expect(find.text('Entrar'), findsOneWidget);
     expect(find.text('Cadastre-se'), findsOneWidget);
-    expect(find.text('CRM'), findsOneWidget);
+    expect(find.text('CRM ou e-mail'), findsOneWidget);
     expect(find.text('Senha'), findsOneWidget);
   });
 

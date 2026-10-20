@@ -42,7 +42,18 @@ class AuthService {
     required String password,
     String? email,
   }) async {
-    final uid = await _createAccount(crm: crm, password: password);
+    final realEmail = email?.trim() ?? '';
+    if (realEmail.isNotEmpty && !realEmail.contains('@')) {
+      throw const AuthException('Informe um e-mail válido para continuar.');
+    }
+
+    // Quando um e-mail real é informado ele passa a ser a identidade da
+    // conta no Firebase Auth (necessário para o envio do e-mail de
+    // recuperação de senha); sem e-mail, mantém o e-mail sintético legado
+    // derivado do CRM.
+    final authEmail = realEmail.isNotEmpty ? realEmail : crmToEmail(crm);
+
+    final uid = await _createAccount(email: authEmail, password: password);
     if (uid == null) {
       throw const AuthException(
         'Não foi possível criar a conta. Tente novamente.',
@@ -53,7 +64,7 @@ class AuthService {
       uid: uid,
       name: name.trim(),
       crm: normalizeCrm(crm).toUpperCase(),
-      email: email?.trim().isNotEmpty == true ? email!.trim() : crmToEmail(crm),
+      email: realEmail.isNotEmpty ? realEmail : crmToEmail(crm),
     );
 
     try {
@@ -64,12 +75,12 @@ class AuthService {
   }
 
   Future<String?> _createAccount({
-    required String crm,
+    required String email,
     required String password,
   }) async {
     try {
       return await _authRepository.createAccount(
-        email: crmToEmail(crm),
+        email: email,
         password: password,
       );
     } on AuthRepositoryException catch (error) {
@@ -77,13 +88,91 @@ class AuthService {
     }
   }
 
-  Future<void> signIn({required String crm, required String password}) async {
+  /// Autentica com CRM ou e-mail real e senha.
+  ///
+  /// No login por CRM, tenta primeiro o e-mail real do perfil no Firestore
+  /// (contas criadas com e-mail) e depois o e-mail sintético legado
+  /// (`{crm}@hearthealth.app`), garantindo compatibilidade com as duas
+  /// gerações de contas.
+  Future<void> signIn({
+    String? crm,
+    String? email,
+    required String password,
+  }) async {
+    final normalizedEmail = (email ?? '').trim();
+    final normalizedCrm = (crm ?? '').trim();
+
+    final candidates = <String>[
+      if (normalizedEmail.contains('@')) normalizedEmail,
+      if (normalizedCrm.isNotEmpty)
+        ...await _authEmailCandidatesForCrm(normalizedCrm),
+    ];
+
+    if (candidates.isEmpty) {
+      throw const AuthException('Informe um CRM ou e-mail válido.');
+    }
+
+    AuthRepositoryException? lastError;
+    for (final candidate in candidates) {
+      try {
+        await _authRepository.signIn(email: candidate, password: password);
+        return;
+      } on AuthRepositoryException catch (error) {
+        lastError = error;
+        // Erros de credencial permitem tentar o próximo e-mail candidato;
+        // os demais (rede, limite de tentativas etc.) abortam imediatamente.
+        if (!_isCredentialError(error.code)) rethrow;
+      }
+    }
+
+    throw AuthException(_messageFor(lastError!.code));
+  }
+
+  /// Resolve o e-mail usado como identidade de autenticação para um CRM.
+  ///
+  /// Considera primeiro o e-mail real do perfil no Firestore e, como
+  /// legado, o e-mail sintético derivado do CRM.
+  Future<String> resolveAuthEmailForCrm(String crm) async {
+    final profileEmail = await _firestoreRepository.doctorEmailForCrm(crm);
+    return profileEmail ?? crmToEmail(crm);
+  }
+
+  /// Envia o e-mail de redefinição de senha para o endereço informado ou
+  /// para o e-mail resolvido a partir do CRM.
+  Future<void> resetPassword({String? crm, String? email}) async {
+    final targetEmail = (email ?? '').trim();
+    final resolvedEmail = targetEmail.contains('@')
+        ? targetEmail
+        : crm != null && crm.trim().isNotEmpty
+        ? await resolveAuthEmailForCrm(crm)
+        : '';
+
+    if (resolvedEmail.isEmpty || !resolvedEmail.contains('@')) {
+      throw const AuthException(
+        'Informe um e-mail válido para redefinir a senha.',
+      );
+    }
+
     try {
-      await _authRepository.signIn(email: crmToEmail(crm), password: password);
+      await _authRepository.sendPasswordResetEmail(email: resolvedEmail);
     } on AuthRepositoryException catch (error) {
       throw AuthException(_messageFor(error.code));
     }
   }
+
+  Future<List<String>> _authEmailCandidatesForCrm(String crm) async {
+    final profileEmail = await _firestoreRepository.doctorEmailForCrm(crm);
+    return [
+      if (profileEmail != null) profileEmail,
+      crmToEmail(crm),
+    ];
+  }
+
+  bool _isCredentialError(String code) =>
+      code == 'invalid-credential' ||
+      code == 'wrong-password' ||
+      code == 'user-not-found' ||
+      code == 'invalid-email';
 
   Future<void> signOut() async {
     try {

@@ -40,6 +40,15 @@ class FirebaseAuthRepository {
       throw AuthRepositoryException(error.code);
     }
   }
+
+  /// Envia o e-mail de redefinição de senha para o endereço informado.
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (error) {
+      throw AuthRepositoryException(error.code);
+    }
+  }
 }
 
 class AuthRepositoryException implements Exception {
