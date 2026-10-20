@@ -65,11 +65,7 @@ class _IntroFlowScreenState extends State<IntroFlowScreen> {
   }
 
   void _skip() {
-    _pageController.animateToPage(
-      _pages.length - 1,
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-    );
+    widget.onCompleted();
   }
 
   @override
