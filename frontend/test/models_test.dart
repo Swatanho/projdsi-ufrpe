@@ -3,6 +3,7 @@ import 'package:frontend/models/appointment_model.dart';
 import 'package:frontend/models/doctor_model.dart';
 import 'package:frontend/models/patient_model.dart';
 import 'package:frontend/models/prediction_model.dart';
+import 'package:frontend/models/risk_assessment_model.dart';
 
 void main() {
   test('AppointmentModel serializes its scheduling data', () {
@@ -111,10 +112,47 @@ void main() {
   test('PredictionModel parses the API response', () {
     final prediction = PredictionModel.fromJson({
       'prediction': 1,
+      'risk_percentage': 76.4,
+      'model_name': 'logistic_regression',
       'message': 'Risco detectado',
     });
 
     expect(prediction.prediction, 1);
+    expect(prediction.riskPercentage, 76.4);
+    expect(prediction.modelName, 'logistic_regression');
     expect(prediction.message, 'Risco detectado');
+  });
+
+  test('RiskAssessmentModel reads stored evaluation data', () {
+    final createdAt = DateTime.utc(2026, 10, 20, 18);
+    final assessment = RiskAssessmentModel.fromMap({
+      'prediction': 1,
+      'riskPercentage': 76.4,
+      'modelName': 'xgboost',
+      'message': 'Risco detectado',
+      'createdAt': createdAt,
+    }, id: 'assessment-1');
+
+    expect(assessment.id, 'assessment-1');
+    expect(assessment.prediction, 1);
+    expect(assessment.riskPercentage, 76.4);
+    expect(assessment.modelName, 'xgboost');
+    expect(assessment.message, 'Risco detectado');
+    expect(assessment.createdAt, createdAt);
+  });
+
+  test('PredictionAlgorithm parses model-specific feature importances', () {
+    final algorithm = PredictionAlgorithm.fromJson({
+      'id': 'xgboost',
+      'label': 'XGBoost',
+      'feature_importances': [
+        {'feature': 'Age', 'importance': 0.32},
+      ],
+    });
+
+    expect(algorithm.id, 'xgboost');
+    expect(algorithm.label, 'XGBoost');
+    expect(algorithm.featureImportances.single.feature, 'Age');
+    expect(algorithm.featureImportances.single.importance, 0.32);
   });
 }

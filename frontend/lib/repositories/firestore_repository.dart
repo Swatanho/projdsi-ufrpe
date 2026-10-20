@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/doctor_model.dart';
 import '../models/patient_model.dart';
+import '../models/risk_assessment_model.dart';
 
 class FirestoreRepository {
   FirestoreRepository({FirebaseFirestore? firestore})
@@ -55,7 +56,7 @@ class FirestoreRepository {
         return PatientModel.fromMap(
           document.data(),
           id: document.id,
-            doctorId:
+          doctorId:
               document.data()['doctorId'] as String? ??
               document.reference.parent.parent?.id,
         );
@@ -80,9 +81,10 @@ class FirestoreRepository {
     }
 
     try {
-      await _firestore.collection(_patientsCollection).doc(id).update(
-        patient.toMap(),
-      );
+      await _firestore
+          .collection(_patientsCollection)
+          .doc(id)
+          .update(patient.toMap());
     } on FirebaseException catch (error) {
       throw FirestoreRepositoryException(error.message ?? error.code);
     }
@@ -95,6 +97,43 @@ class FirestoreRepository {
     } on FirebaseException catch (error) {
       throw FirestoreRepositoryException(error.message ?? error.code);
     }
+  }
+
+  Future<void> addRiskAssessment(
+    String patientId,
+    RiskAssessmentModel assessment,
+  ) async {
+    try {
+      await _firestore
+          .collection(_patientsCollection)
+          .doc(patientId)
+          .collection('risk_assessments')
+          .add({
+            ...assessment.toMap(),
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+    } on FirebaseException catch (error) {
+      throw FirestoreRepositoryException(error.message ?? error.code);
+    }
+  }
+
+  Stream<List<RiskAssessmentModel>> watchRiskAssessments(String patientId) {
+    return _firestore
+        .collection(_patientsCollection)
+        .doc(patientId)
+        .collection('risk_assessments')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (document) => RiskAssessmentModel.fromMap(
+                  document.data(),
+                  id: document.id,
+                ),
+              )
+              .toList(),
+        );
   }
 
   /// Retorna o e-mail real cadastrado no perfil do médico com o CRM

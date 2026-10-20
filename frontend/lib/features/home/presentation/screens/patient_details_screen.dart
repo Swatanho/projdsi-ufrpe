@@ -4,6 +4,7 @@ import '../../../../models/patient_model.dart';
 import '../../../../services/auth_service.dart';
 import '../../../../services/patient_service.dart';
 import '../../../../features/patients/screens/patient_register_screen.dart';
+import '../widgets/risk_assessment_history.dart';
 import 'prediction_screen.dart';
 
 class PatientDetailsScreen extends StatelessWidget {
@@ -12,11 +13,21 @@ class PatientDetailsScreen extends StatelessWidget {
   final PatientModel patient;
 
   void _openPrediction(BuildContext context) {
+    final patientId = patient.id;
+    if (patientId == null || patientId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Salve o cadastro do paciente antes de avaliá-lo.'),
+          backgroundColor: Color(0xFFB83F46),
+        ),
+      );
+      return;
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PredictionScreen(
-          patientName: patient.name,
-          patientAge: patient.age,
+          patient: patient,
         ),
       ),
     );
@@ -149,22 +160,16 @@ class PatientDetailsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFD8E5E3)),
-                      ),
-                      child: const Text(
-                        'Nenhuma avaliação de risco registrada.',
+                    if (patient.id != null && patient.id!.isNotEmpty)
+                      RiskAssessmentHistory(patientId: patient.id!)
+                    else
+                      const Text(
+                        'Salve o cadastro do paciente para consultar o histórico.',
                         style: TextStyle(
                           color: Color(0xFF718383),
                           fontSize: 13,
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
