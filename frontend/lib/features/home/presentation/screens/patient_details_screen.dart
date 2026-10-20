@@ -1,32 +1,105 @@
 import 'package:flutter/material.dart';
 
+import '../../../../models/patient_model.dart';
+import '../../../../services/auth_service.dart';
+import '../../../../services/patient_service.dart';
+import '../../../../features/patients/screens/patient_register_screen.dart';
 import 'prediction_screen.dart';
 
 class PatientDetailsScreen extends StatelessWidget {
-  const PatientDetailsScreen({
-    super.key,
-    required this.patientName,
-    required this.patientAge,
-    required this.patientGender,
-    required this.registeredAt,
-    required this.riskLabel,
-    required this.isHighRisk,
-  });
+  const PatientDetailsScreen({super.key, required this.patient});
 
-  final String patientName;
-  final int patientAge;
-  final String patientGender;
-  final String registeredAt;
-  final String riskLabel;
-  final bool isHighRisk;
+  final PatientModel patient;
 
   void _openPrediction(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) =>
-            PredictionScreen(patientName: patientName, patientAge: patientAge),
+        builder: (_) => PredictionScreen(
+          patientName: patient.name,
+          patientAge: patient.age,
+        ),
       ),
     );
+  }
+
+  /// Restrição de posse: apenas o médico dono do cadastro pode editá-lo.
+  /// As regras do Firestore aplicam a mesma restrição no servidor; esta
+  /// checagem apenas esconde a ação de quem não é o dono.
+  bool get _isOwner =>
+      patient.doctorId != null &&
+      patient.doctorId == AuthService.instance.currentUserId;
+
+  void _openPatientEdit(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PatientRegisterScreen(
+          doctorId: patient.doctorId!,
+          patientToEdit: patient,
+        ),
+      ),
+    );
+  }
+
+  /// A exclusão exige confirmação explícita; após remover, a tela volta
+  /// para a lista, que reage ao stream do Firestore e atualiza sozinha.
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir paciente'),
+        content: Text(
+          'Deseja realmente excluir o cadastro de ${patient.name}? '
+          'Esta ação não pode ser desfeita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFB83F46),
+            ),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final id = patient.id;
+    if (id == null) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível excluir este paciente.'),
+          backgroundColor: Color(0xFFB83F46),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await PatientService().deletePatient(id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Paciente excluído com sucesso.'),
+          backgroundColor: Color(0xFF0D8279),
+        ),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao excluir: $e'),
+          backgroundColor: const Color(0xFFB83F46),
+        ),
+      );
+    }
   }
 
   @override
@@ -53,7 +126,9 @@ class PatientDetailsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 38),
+                  _isOwner
+                      ? _EditButton(onPressed: () => _openPatientEdit(context))
+                      : const SizedBox(width: 38),
                 ],
               ),
             ),
@@ -63,36 +138,32 @@ class PatientDetailsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildPatientSummary(),
+                    _buildPatientSummary(context),
                     const SizedBox(height: 20),
                     const Text(
-                      'Histórico de Avaliações',
+                      'Avaliações de risco',
                       style: TextStyle(
                         color: Color(0xFF173A3A),
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    _AssessmentTile(
-                      date: '18/10/2024',
-                      risk: 'Risco Baixo',
-                      score: '22%',
-                      color: const Color(0xFF2CA27A),
-                    ),
-                    _AssessmentTile(
-                      date: '04/07/2024',
-                      risk: 'Médio Risco',
-                      score: '45%',
-                      color: const Color(0xFFE8A33A),
-                    ),
-                    _AssessmentTile(
-                      date: '12/03/2024',
-                      risk: riskLabel,
-                      score: isHighRisk ? '78%' : '18%',
-                      color: isHighRisk
-                          ? const Color(0xFFD96B70)
-                          : const Color(0xFF2CA27A),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFD8E5E3)),
+                      ),
+                      child: const Text(
+                        'Nenhuma avaliação de risco registrada.',
+                        style: TextStyle(
+                          color: Color(0xFF718383),
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -122,17 +193,47 @@ class PatientDetailsScreen extends StatelessWidget {
                 ),
               ),
             ),
+            if (_isOwner)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: TextButton.icon(
+                    onPressed: () => _confirmDelete(context),
+                    icon: const Icon(Icons.delete_outline, size: 19),
+                    label: const Text('Excluir paciente'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFB83F46),
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFFD8E5E3)),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPatientSummary() {
-    final nameParts = patientName.trim().split(RegExp(r'\s+'));
-    final initials = nameParts.length > 1
+  Widget _buildPatientSummary(BuildContext context) {
+    final nameParts = patient.name.trim().split(RegExp(r'\s+'));
+    final initials = patient.name.trim().isEmpty
+        ? '?'
+        : nameParts.length > 1
         ? '${nameParts.first[0]}${nameParts.last[0]}'.toUpperCase()
-        : patientName.substring(0, 1).toUpperCase();
+        : patient.name.trim()[0].toUpperCase();
+    final registeredAt = MaterialLocalizations.of(
+      context,
+    ).formatMediumDate(patient.createdAt);
 
     return Container(
       width: double.infinity,
@@ -152,7 +253,7 @@ class PatientDetailsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      patientName,
+                      patient.name,
                       style: const TextStyle(
                         color: Color(0xFF173A3A),
                         fontSize: 17,
@@ -161,7 +262,7 @@ class PatientDetailsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '$patientAge anos • $patientGender',
+                      '${patient.age} anos • ${patient.gender}',
                       style: const TextStyle(
                         color: Color(0xFF718383),
                         fontSize: 12,
@@ -189,17 +290,27 @@ class PatientDetailsScreen extends StatelessWidget {
             child: Divider(height: 1, color: Color(0xFFE4ECEA)),
           ),
           Text(
-            'Cadastrada em $registeredAt',
+            'Cadastrado em $registeredAt',
             style: const TextStyle(color: Color(0xFF718383), fontSize: 11),
           ),
           const SizedBox(height: 8),
-          const Wrap(
+          Wrap(
             spacing: 7,
             runSpacing: 6,
             children: [
-              _PatientTag(label: 'IMC 24.5'),
-              _PatientTag(label: 'Hipertensa'),
-              _PatientTag(label: 'Ativa'),
+              _PatientTag(label: 'IMC ${patient.bmi.toStringAsFixed(1)}'),
+              _PatientTag(
+                label: 'Pressão alta: ${patient.highBp ? 'Sim' : 'Não'}',
+              ),
+              _PatientTag(
+                label: 'Colesterol alto: ${patient.highChol ? 'Sim' : 'Não'}',
+              ),
+              _PatientTag(label: 'Fumante: ${patient.smoker ? 'Sim' : 'Não'}'),
+              _PatientTag(
+                label:
+                    'Atividade física: ${patient.physActivity ? 'Sim' : 'Não'}',
+              ),
+              _PatientTag(label: 'Derrame: ${patient.stroke ? 'Sim' : 'Não'}'),
             ],
           ),
         ],
@@ -233,6 +344,35 @@ class _BackButton extends StatelessWidget {
   }
 }
 
+class _EditButton extends StatelessWidget {
+  const _EditButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 38,
+      height: 38,
+      child: IconButton(
+        tooltip: 'Editar paciente',
+        onPressed: onPressed,
+        icon: const Icon(
+          Icons.edit_outlined,
+          size: 19,
+          color: Color(0xFF087A72),
+        ),
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(11),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _PatientTag extends StatelessWidget {
   const _PatientTag({required this.label});
 
@@ -253,77 +393,6 @@ class _PatientTag extends StatelessWidget {
           fontSize: 10,
           fontWeight: FontWeight.w700,
         ),
-      ),
-    );
-  }
-}
-
-class _AssessmentTile extends StatelessWidget {
-  const _AssessmentTile({
-    required this.date,
-    required this.risk,
-    required this.score,
-    required this.color,
-  });
-
-  final String date;
-  final String risk;
-  final String score;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 9),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD8E5E3)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Avaliação em $date',
-                  style: const TextStyle(
-                    color: Color(0xFF718383),
-                    fontSize: 11,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  risk,
-                  style: const TextStyle(
-                    color: Color(0xFF173A3A),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              score,
-              style: TextStyle(
-                color: color,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(Icons.chevron_right, color: Color(0xFF718383), size: 19),
-        ],
       ),
     );
   }
