@@ -1,3 +1,5 @@
+import 'dart:core';
+
 import 'package:flutter/material.dart';
 
 import '../../../../models/appointment_model.dart';
@@ -12,21 +14,19 @@ class AgendaScreen extends StatefulWidget {
 }
 
 class _AgendaScreenState extends State<AgendaScreen> {
-  final AppointmentService _appointmentService = AppointmentService();
+  late final AppointmentService _appointmentService = AppointmentService();
   DateTime _selectedDate = DateTime.now();
 
-  Stream<List<AppointmentModel>> get _appointmentsStream {
-    final doctorId = AuthService.instance.currentUserId;
-    if (doctorId == null) return const Stream.empty();
-    return _appointmentService.watchAppointmentsForDoctor(doctorId);
-  }
+Stream<List<AppointmentModel>> get _appointmentsStream {
+  final doctorId = AuthService.instance.currentUserId;
+  if (doctorId == null) return const Stream.empty();
+  
+  return _appointmentService.getAppointmentsByDoctor(doctorId);
+}
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F8F7),
-      body: SafeArea(
-        child: StreamBuilder<List<AppointmentModel>>(
+    var streamBuilder = StreamBuilder<List<AppointmentModel>>(
           stream: _appointmentsStream,
           builder: (context, snapshot) {
             final appointments = snapshot.data ?? const <AppointmentModel>[];
@@ -103,7 +103,11 @@ class _AgendaScreenState extends State<AgendaScreen> {
               ],
             );
           },
-        ),
+        );
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F8F7),
+      body: SafeArea(
+        child: streamBuilder,
       ),
     );
   }
@@ -214,7 +218,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                                 ),
                               ),
                               subtitle: Text(
-                                '${_formatTime(appointment.scheduledAt)} • ${appointment.description ?? 'Consulta agendada.'}',
+                                '${_formatTime(appointment.scheduledAt)}\n${appointment.description ?? 'Consulta agendada.'}',
                                 style: const TextStyle(color: Color(0xFF718383)),
                               ),
                               trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF718383)),
@@ -401,6 +405,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                   }
 
                   if (mounted) {
+                    // ignore: use_build_context_synchronously
                     Navigator.of(dialogContext).pop(true);
                     if (parentDialogContext != null && Navigator.of(parentDialogContext).canPop()) {
                       Navigator.of(parentDialogContext).pop();

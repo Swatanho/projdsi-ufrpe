@@ -4,6 +4,7 @@ import '../../../../models/patient_model.dart';
 import '../../../../services/auth_service.dart';
 import '../../../../services/doctor_service.dart';
 import '../../../../services/patient_service.dart';
+import 'agenda_screen.dart';
 import '../../../../features/patients/screens/patient_register_screen.dart';
 import 'doctor_profile_screen.dart';
 import 'patient_details_screen.dart';
@@ -375,7 +376,14 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icons.access_time,
             label: 'Agenda',
             selected: _selectedTab == 1,
-            onTap: () => setState(() => _selectedTab = 1),
+            onTap: () { 
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AgendaScreen(),
+                ),
+              );
+            },
           ),
           _NavItem(
             icon: Icons.person_outline,
