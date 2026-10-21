@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/appointment_model.dart';
 import '../models/doctor_model.dart';
 import '../models/patient_model.dart';
 import '../models/risk_assessment_model.dart';
@@ -12,6 +13,7 @@ class FirestoreRepository {
 
   static const _doctorsCollection = 'doctors';
   static const _patientsCollection = 'patients';
+  static const _appointmentsCollection = 'appointments';
 
   Stream<DoctorModel> doctorProfileStream(String uid) {
     return _firestore
@@ -115,6 +117,79 @@ class FirestoreRepository {
     } on FirebaseException catch (error) {
       throw FirestoreRepositoryException(error.message ?? error.code);
     }
+  }
+
+  Future<void> addAppointment(String doctorId, AppointmentModel appointment) async {
+    if (appointment.doctorId.isEmpty || appointment.doctorId != doctorId) {
+      throw const FirestoreRepositoryException(
+        'A consulta precisa estar vinculada ao médico autenticado.',
+      );
+    }
+
+    try {
+      final payload = <String, dynamic>{
+        ...appointment.toMap(),
+        'doctorId': doctorId,
+      };
+      await _firestore.collection(_appointmentsCollection).add(payload);
+    } on FirebaseException catch (error) {
+      throw FirestoreRepositoryException(
+        '${error.code}: ${error.message ?? 'Falha ao gravar a consulta.'}',
+      );
+    }
+  }
+
+  Future<void> updateAppointment(AppointmentModel appointment) async {
+    final id = appointment.id;
+    if (id == null || id.isEmpty) {
+      throw const FirestoreRepositoryException(
+        'Não é possível atualizar uma consulta sem id.',
+      );
+    }
+
+    if (appointment.doctorId.isEmpty) {
+      throw const FirestoreRepositoryException(
+        'Não foi possível identificar o médico da consulta.',
+      );
+    }
+
+    try {
+      final payload = appointment.toMap();
+      await _firestore
+          .collection(_appointmentsCollection)
+          .doc(id)
+          .update(payload);
+    } on FirebaseException catch (error) {
+      throw FirestoreRepositoryException(
+        '${error.code}: ${error.message ?? 'Falha ao atualizar a consulta.'}',
+      );
+    }
+  }
+
+  Future<void> deleteAppointment(String id) async {
+    try {
+      await _firestore.collection(_appointmentsCollection).doc(id).delete();
+    } on FirebaseException catch (error) {
+      throw FirestoreRepositoryException(error.message ?? error.code);
+    }
+  }
+
+  Stream<List<AppointmentModel>> watchAppointmentsForDoctor(String doctorId) {
+    return _firestore
+        .collection(_appointmentsCollection)
+        .where('doctorId', isEqualTo: doctorId)
+        .snapshots()
+        .map((snapshot) {
+          final appointments = snapshot.docs
+              .map(
+                (document) => AppointmentModel.fromMap(
+                  document.data(),
+                  id: document.id,
+                ),
+              )
+              .toList();
+          return AppointmentModel.sortByScheduledAt(appointments);
+        });
   }
 
   Stream<List<RiskAssessmentModel>> watchRiskAssessments(String patientId) {
