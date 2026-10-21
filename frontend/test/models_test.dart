@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/models/appointment_model.dart';
 import 'package:frontend/models/doctor_model.dart';
@@ -10,18 +11,45 @@ void main() {
     final appointment = AppointmentModel(
       doctorId: 'doctor-1',
       patientId: 'patient-1',
-      scheduledAt: DateTime.utc(2026, 10, 12, 14, 30),
+      patientName: 'Ana Silva',
+      scheduledAt: DateTime(2026, 10, 12, 14, 30),
       notes: 'Reavaliação',
+      description: 'Retorno de cardiologia.',
     );
 
+    final serialized = appointment.toMap();
     final parsed = AppointmentModel.fromMap(
-      appointment.toMap(),
+      serialized,
       id: 'appointment-1',
     );
 
+    expect(serialized['scheduledAt'], isA<Timestamp>());
     expect(parsed.id, 'appointment-1');
     expect(parsed.scheduledAt, appointment.scheduledAt);
+    expect(parsed.patientName, 'Ana Silva');
+    expect(parsed.description, 'Retorno de cardiologia.');
     expect(parsed.notes, 'Reavaliação');
+  });
+
+  test('AppointmentModel sorts appointments by schedule time', () {
+    final appointments = [
+      AppointmentModel(
+        doctorId: 'doctor-1',
+        patientId: 'patient-1',
+        patientName: 'Paciente B',
+        scheduledAt: DateTime(2026, 10, 12, 16, 0),
+      ),
+      AppointmentModel(
+        doctorId: 'doctor-1',
+        patientId: 'patient-2',
+        patientName: 'Paciente A',
+        scheduledAt: DateTime(2026, 10, 12, 9, 30),
+      ),
+    ];
+
+    final sorted = AppointmentModel.sortByScheduledAt(appointments);
+
+    expect(sorted.map((item) => item.patientName).toList(), ['Paciente A', 'Paciente B']);
   });
 
   test('DoctorModel reads and writes profile data', () {
