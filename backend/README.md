@@ -5,7 +5,7 @@ Este diretório contém a API do projeto em FastAPI.
 ## Estrutura
 
 - `main.py` - aplicação FastAPI
-- `heart_disease_model.pkl` - modelo treinado para predição
+- `heart_disease_model_logistic_regression.pkl` e `heart_disease_model_xgboost.pkl` - modelos treinados para predição
 - `requirements.txt` - dependências do backend
 
 ## Execução

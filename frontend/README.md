@@ -7,11 +7,12 @@ Aplicativo Flutter conectado ao Firebase Authentication, Cloud Firestore e à AP
 - `lib/models/` - entidades e conversão de dados (`DoctorModel`, `PatientModel`, `PredictionModel`, `AppointmentModel`)
 - `lib/repositories/` - acesso direto ao Firebase Authentication e Cloud Firestore
 - `lib/services/` - casos de uso de médicos, autenticação, pacientes e integração com a API
-- `lib/views/home_screen.dart` - entrada da camada de interface
 - `lib/features/*/presentation/` - telas e componentes organizados por funcionalidade
 - `lib/core/theme/` - tema compartilhado
 
-Os caminhos antigos em `lib/core/services/` e `lib/features/patients/models/` permanecem como exports de compatibilidade.
+Cada camada tem um único diretório canônico: serviços em `lib/services/`, modelos em
+`lib/models/` e telas/widgets em `lib/features/`. A tela inicial é
+`lib/features/home/presentation/screens/home_screen.dart`.
 
 ## Firebase
 

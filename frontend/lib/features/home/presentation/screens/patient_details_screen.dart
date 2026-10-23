@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../models/patient_model.dart';
 import '../../../../services/auth_service.dart';
 import '../../../../services/patient_service.dart';
-import '../../../../features/patients/screens/patient_register_screen.dart';
+import 'patient_register_screen.dart';
 import '../widgets/risk_assessment_history.dart';
 import 'prediction_screen.dart';
 

@@ -5,7 +5,7 @@ import '../../../../services/auth_service.dart';
 import '../../../../services/doctor_service.dart';
 import '../../../../services/patient_service.dart';
 import 'agenda_screen.dart';
-import '../../../../features/patients/screens/patient_register_screen.dart';
+import 'patient_register_screen.dart';
 import 'doctor_profile_screen.dart';
 import 'patient_details_screen.dart';
 

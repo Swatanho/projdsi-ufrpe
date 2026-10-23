@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'services/auth_service.dart';
 import 'features/home/presentation/screens/login_screen.dart';
+import 'features/home/presentation/screens/home_screen.dart';
 import 'features/onboarding/presentation/screens/intro_flow_screen.dart';
-import 'views/home_screen.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
