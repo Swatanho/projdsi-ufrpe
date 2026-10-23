@@ -318,10 +318,10 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                             DropdownButtonFormField<String>(
                               value: _selectedGender,
                               decoration: _inputDecoration(
-                                'Sexo',
+                                'Genero Biológico',
                                 Icons.wc_outlined,
                               ),
-                              items: ['Masculino', 'Feminino', 'Outro']
+                              items: ['Masculino', 'Feminino']
                                   .map(
                                     (gender) => DropdownMenuItem(
                                       value: gender,
