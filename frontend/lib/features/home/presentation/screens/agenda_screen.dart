@@ -223,15 +223,23 @@ Stream<List<AppointmentModel>> get _appointmentsStream {
                               ),
                               trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF718383)),
                               onTap: () {
-                                Navigator.of(dialogContext).pop();
+                                final currentDiaLogContext = dialogContext;
+
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (_) => _AppointmentDetailScreen(
                                       appointment: appointment,
                                       onDelete: () async {
                                         await _deleteAppointment(appointment.id ?? '');
+
+                                        if (!mounted) return;
+
                                         if (Navigator.canPop(context)) {
                                           Navigator.of(context).pop();
+                                        }
+
+                                        if (Navigator.canPop(currentDiaLogContext)) {
+                                          Navigator.of(currentDiaLogContext).pop();
                                         }
                                       },
                                       onEdit: () {
@@ -449,11 +457,15 @@ Stream<List<AppointmentModel>> get _appointmentsStream {
   }
 
   Future<void> _deleteAppointment(String id) async {
-    if (id.isEmpty) return;
+    if (id.isEmpty) {
+      _showSnack('Erro: ID da consulta inválido.');
+      return;
+    }
     try {
       await _appointmentService.deleteAppointment(id);
-    } catch (_) {
-      _showSnack('Não foi possível excluir a consulta.');
+      _showSnack('Consulta excluída com sucesso.');
+    } catch (e) {
+      _showSnack('Não foi possível excluir a consulta: $e');
     }
   }
 

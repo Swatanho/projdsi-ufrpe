@@ -16,9 +16,10 @@ Stream<List<AppointmentModel>> getAppointmentsByDoctor(String doctorId) {
       .snapshots()
       .map((snapshot) {
     return snapshot.docs.map((doc) {
-      final data = doc.data();
-      data['id'] = doc.id; // Injeta o ID do Firestore no mapa
-      return AppointmentModel.fromMap(data);
+      return AppointmentModel.fromMap(
+        doc.data(),
+        id: doc.id,
+      );
     }).toList();
   });
 }
