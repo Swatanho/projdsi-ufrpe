@@ -6,6 +6,8 @@ import joblib
 import pandas as pd
 from pydantic import BaseModel
 
+from predictor import PredictorDCV
+
 app = FastAPI(title='Heart Helth', version='1.0.0')
 
 app.add_middleware(
@@ -49,6 +51,23 @@ MODEL_LABELS = {
     'xgboost': 'XGBoost',
 }
 models = {name: joblib.load(path) for name, path in MODEL_PATHS.items()}
+
+DCV_MODEL_ID = 'dcv'
+DCV_MODEL_LABEL = 'XGBoost (PISI3)'
+dcv_predictor = PredictorDCV.carregar(BACKEND_DIR / 'dcv_modelo.pkl')
+
+
+def _dcv_feature_importances():
+    """Importancias globais do modelo DCV (Booster nativo do XGBoost)."""
+    pesos = dcv_predictor._modelo.get_score(importance_type='gain')
+    brutos = [float(pesos.get(feature, 0.0)) for feature in dcv_predictor.features]
+    total = sum(brutos)
+    importancias = [
+        {'feature': feature, 'importance': (valor / total) if total else 0.0}
+        for feature, valor in zip(dcv_predictor.features, brutos)
+    ]
+    importancias.sort(key=lambda item: item['importance'], reverse=True)
+    return importancias
 
 class HeartDiseaseInput(BaseModel):
     HighBP: int
@@ -105,16 +124,28 @@ def list_models():
             'feature_importances': importances,
         })
 
+    available_models.append({
+        'id': DCV_MODEL_ID,
+        'label': DCV_MODEL_LABEL,
+        'feature_importances': _dcv_feature_importances(),
+    })
+
     return {'models': available_models}
 
 
 @app.post('/predict')
 def predict(data: HeartDiseaseInput, model_name: str = 'logistic_regression'):
+    if model_name == DCV_MODEL_ID:
+        return _predict_dcv(data)
+
     estimator = models.get(model_name)
     if estimator is None:
         raise HTTPException(
             status_code=400,
-            detail=f'Modelo inválido. Opções: {", ".join(MODEL_LABELS)}',
+            detail=(
+                'Modelo inválido. Opções: '
+                + ', '.join(list(MODEL_LABELS.values()) + [DCV_MODEL_LABEL])
+            ),
         )
 
     payload = pd.DataFrame([data.model_dump()], columns=FEATURE_COLUMNS)
@@ -128,4 +159,26 @@ def predict(data: HeartDiseaseInput, model_name: str = 'logistic_regression'):
         'risk_percentage': risk_percentage,
         'model_name': model_name,
         'message': 'Risco de doença cardíaca detectado' if prediction == 1 else 'Sem indicação de doença cardíaca',
+    }
+
+
+def _predict_dcv(data):
+    """Predicao com o modelo DCV (contrato PISI3): threshold + faixas de risco."""
+    resultado = dcv_predictor.prever(data.model_dump())
+    probabilidade = resultado['probabilidade']
+    classificacao = resultado['classificacao']
+
+    mensagens = {
+        'alto': 'Risco elevado de doença cardíaca detectado',
+        'moderado': 'Atenção: risco moderado de doença cardíaca',
+        'baixo': 'Sem indicação de doença cardíaca',
+    }
+    return {
+        'prediction': 1 if classificacao == 'alto' else 0,
+        'risk_percentage': float(probabilidade * 100),
+        'model_name': DCV_MODEL_ID,
+        'message': mensagens.get(classificacao, mensagens['baixo']),
+        'classificacao': classificacao,
+        'threshold': dcv_predictor.threshold,
+        'versao': dcv_predictor.versao,
     }
