@@ -9,4 +9,5 @@ venv/
 *.pkl
 !heart_disease_model_logistic_regression.pkl
 !heart_disease_model_xgboost.pkl
+!dcv_modelo.pkl
 *.db
