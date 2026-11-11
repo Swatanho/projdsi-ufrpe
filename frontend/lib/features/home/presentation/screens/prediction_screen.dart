@@ -57,7 +57,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
   late final Future<List<PredictionAlgorithm>> _modelsFuture;
   late final Map<String, int> _features;
 
-  String _selectedModelId = 'logistic_regression';
+  String _selectedModelId = 'dcv';
   bool _loading = false;
 
   @override
