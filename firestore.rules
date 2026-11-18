@@ -47,6 +47,21 @@ service cloud.firestore {
       }
     }
 
+    // Consultas médicas: cada médico só acessa e gerencia suas próprias consultas.
+    match /appointments/{appointmentId} {
+      allow read: if request.auth != null
+        && resource.data.doctorId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.doctorId == request.auth.uid;
+      // Como o AppointmentModel.toMap() envia `doctorId` na atualização,
+      // exigimos que ele continue igual ao UID do médico para impedir transferência.
+      allow update: if request.auth != null
+        && resource.data.doctorId == request.auth.uid
+        && request.resource.data.doctorId == request.auth.uid;
+      allow delete: if request.auth != null
+        && resource.data.doctorId == request.auth.uid;
+    }
+
     // Perfis dos médicos: cada usuário só acessa o próprio documento.
     // A propriedade é definida pela `uid` (o documento é gravado em
     // `/doctors/{uid}`), não pelo e-mail — evita o cenário em que o e-mail
