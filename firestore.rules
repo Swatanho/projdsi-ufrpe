@@ -40,7 +40,8 @@ service cloud.firestore {
           && request.resource.data.riskPercentage <= 100
           && request.resource.data.modelName in [
             'logistic_regression',
-            'xgboost'
+            'xgboost',
+            'dcv'
           ]
           && request.resource.data.message is string
           && request.resource.data.createdAt == request.time;
